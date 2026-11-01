@@ -27,9 +27,12 @@ export const useOnlineOrdersStore = create<OnlineOrdersState>((set, get) => ({
   onlineOrders: [],
 
   subscribeToOnlineOrders: () => {
-    // Serve the cache right away so the list isn't missing online orders offline.
+    // Serve the cache right away so the list isn't missing online orders offline — but
+    // only until live data arrives. (Checking for an empty list instead would bring back
+    // deleted orders when the live list really is empty.)
+    let gotLiveData = false;
     void cache.load().then((cached) => {
-      if (cached?.length && get().onlineOrders.length === 0) {
+      if (!gotLiveData && cached?.length) {
         set({ onlineOrders: cached });
       }
     });
@@ -42,6 +45,7 @@ export const useOnlineOrdersStore = create<OnlineOrdersState>((set, get) => ({
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        gotLiveData = true;
         const data = snapshot.docs.map(
           (d) => ({ ...(d.data() as OnlineOrder), id: d.id, source: "online" }) as OnlineOrder,
         );
