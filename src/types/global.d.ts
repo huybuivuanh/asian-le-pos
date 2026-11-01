@@ -186,13 +186,18 @@ declare global {
     id: string;
     source: "online";
     orderNumber?: string;
-    /** Orders only appear here once accepted, so never "New". */
-    status: "InProgress" | "ReadyForPickup" | "Completed" | "Cancelled";
+    /** Every website order is copied, including New (not accepted yet). Rejected ones
+     * end up Cancelled. */
+    status: "New" | "InProgress" | "ReadyForPickup" | "Completed" | "Cancelled";
     fulfillment?: TakeOutFulfillment;
     customerName: string;
     phoneNumber: string;
     orderItems: OnlineOrderItem[];
     taxBreakDown?: TaxBreakDown;
+    /** Rewards member linked at checkout. Points used for the discount
+     * (`pointsToRedeem`) are only taken from the balance when the Orders app completes
+     * the order (`pointsRedeemed`) — until then they're held, see pendingOnlineRedeemPoints. */
+    loyalty?: { memberId: string; pointsToRedeem?: number; pointsRedeemed?: number };
     paid: boolean;
     printed: boolean;
     createdAt: Timestamp;

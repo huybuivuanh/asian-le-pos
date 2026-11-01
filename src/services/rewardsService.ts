@@ -1,6 +1,7 @@
 // Calls the Rewards (loyalty) project's Cloud Functions as the signed-in POS
 // device. Each function's response is the confirmation — there are no callbacks.
-import { rewardsFunctions } from "@/lib/rewardsFirebase";
+import { rewardsDb, rewardsFunctions } from "@/lib/rewardsFirebase";
+import { doc, onSnapshot } from "firebase/firestore";
 import { FirebaseError } from "firebase/app";
 import { httpsCallable } from "firebase/functions";
 
@@ -84,6 +85,26 @@ export async function lookupMember(input: LookupMemberInput): Promise<RewardsMem
     phone: member.phone,
     points: member.points ?? 0,
   };
+}
+
+/**
+ * Live points balance of one member (members/{id} in the rewards project; the rules let
+ * the POS account read a single member). Returns an unsubscribe. On error (offline, or
+ * the rule not deployed) it just stops — callers keep the balance from lookupMember.
+ */
+export function subscribeToMemberPoints(
+  memberId: string,
+  onPoints: (points: number) => void,
+): () => void {
+  if (!rewardsDb) return () => {};
+  return onSnapshot(
+    doc(rewardsDb, "members", memberId),
+    (snap) => {
+      const points = snap.get("points");
+      if (typeof points === "number") onPoints(points);
+    },
+    (err) => console.warn("Rewards balance listener stopped:", err.message),
+  );
 }
 
 /** Once per order: calling again returns the first result. */

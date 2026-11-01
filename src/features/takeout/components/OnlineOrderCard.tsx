@@ -1,4 +1,4 @@
-import { TakeOutFulfillmentKind } from "@/types/enums";
+import { DiscountType, TakeOutFulfillmentKind } from "@/types/enums";
 import { formatDate, formatPhone } from "@/utils/helpers";
 import React, { memo } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
@@ -10,6 +10,7 @@ type Props = {
 };
 
 const STATUS_BADGE: Record<OnlineOrder["status"], { label: string; className: string; text: string }> = {
+  New: { label: "New", className: "bg-yellow-300", text: "text-yellow-900" },
   InProgress: { label: "In Progress", className: "bg-blue-200", text: "text-blue-800" },
   ReadyForPickup: { label: "Ready for pickup", className: "bg-teal-200", text: "text-teal-800" },
   Completed: { label: "Completed", className: "bg-green-200", text: "text-green-800" },
@@ -33,6 +34,7 @@ export const OnlineOrderCard = memo(function OnlineOrderCard({
       ? item.fulfillment.readyTimeMinutes
       : undefined;
 
+  // Same colours as take-out cards (New included; its badge sets it apart).
   const cardBg =
     item.status === "Cancelled"
       ? "bg-red-100 border-red-200"
@@ -125,6 +127,19 @@ export const OnlineOrderCard = memo(function OnlineOrderCard({
           {tax && (
             <View className="mt-2 p-2 border-t border-gray-200">
               <Row label="Subtotal" value={money(tax.subTotal)} />
+              {tax.discount && tax.discount.discountAmount > 0 ? (
+                <>
+                  <Row
+                    label={
+                      tax.discount.discountType === DiscountType.Percent
+                        ? `Discount (${tax.discount.discountValue}%)`
+                        : `Discount (${money(tax.discount.discountValue)})`
+                    }
+                    value={`-${money(tax.discount.discountAmount)}`}
+                  />
+                  <Row label="Taxable Subtotal" value={money(tax.discount.taxableSubtotal)} />
+                </>
+              ) : null}
               {tax.pst > 0 && <Row label="PST" value={money(tax.pst)} />}
               {tax.gst > 0 && <Row label="GST" value={money(tax.gst)} />}
               <Row label="Total" value={money(tax.total)} bold />

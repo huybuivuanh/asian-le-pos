@@ -188,7 +188,7 @@ credits            menuChanges        printQueue
 onlineOrders
 ```
 
-`onlineOrders` holds read-only copies of website orders (accepted onward). They're written only by the `mirrorOnlineOrder` Cloud Function in the `asianlewebsite` project (`asian-le-website-admin/functions`). The POS never writes to it. Online orders are managed in the Orders app.
+`onlineOrders` holds read-only copies of every website order, New ones included (same card colours as take-out orders; New has a "New" badge; rejected ones show as Cancelled). Each copy carries `loyalty.memberId` / `pointsToRedeem` / `pointsRedeemed`: points a member used online are only taken when the Orders app completes the order, so the Rewards member screen subtracts the held ones (`pendingOnlineRedeemPoints`) before showing the balance or allowing a redeem. The balance itself is live: `subscribeToMemberPoints` listens to `members/{id}` in the rewards project (rules allow the POS account a single-doc `get`), so changes made by the Orders app show up while the screen is open. They're written only by the `mirrorOnlineOrder` Cloud Function in the `asianlewebsite` project (`asian-le-website-admin/functions`). The POS never writes to it. Online orders are managed in the Orders app.
 
 ### Cloud Functions (`functions/src/index.ts`)
 Two scheduled functions:

@@ -35,6 +35,25 @@ export const rewardsClosedReason = (status: OrderStatus | undefined): string | n
     ? "This order was cancelled, so points can't be collected or redeemed."
     : null;
 
+// Online orders whose held points haven't been taken or released yet.
+const OPEN_ONLINE_STATUSES: readonly OnlineOrder["status"][] = ["New", "InProgress", "ReadyForPickup"];
+
+/**
+ * Points a member used on open online orders that haven't been taken from their balance
+ * yet (the Orders app takes them on Complete). Subtract from the balance before
+ * redeeming here, so the same points can't be used twice. Same rule as the website.
+ */
+export const pendingOnlineRedeemPoints = (
+  memberId: string,
+  onlineOrders: readonly OnlineOrder[],
+): number =>
+  onlineOrders.reduce((sum, o) => {
+    const l = o.loyalty;
+    if (!l || l.memberId !== memberId || !OPEN_ONLINE_STATUSES.includes(o.status)) return sum;
+    if (l.pointsRedeemed != null || !l.pointsToRedeem || l.pointsToRedeem <= 0) return sum;
+    return sum + l.pointsToRedeem;
+  }, 0);
+
 /** True when the order's redemption is still in effect (not reversed). */
 export const hasActiveRedemption = (loyalty: OrderLoyalty | undefined | null): boolean =>
   Boolean(loyalty?.redeemedAmount && !loyalty.reversedAt);

@@ -9,6 +9,7 @@ import {
   getReactNativePersistence,
   initializeAuth,
 } from "firebase/auth";
+import { Firestore, getFirestore } from "firebase/firestore";
 import { Functions, getFunctions } from "firebase/functions";
 import { Platform } from "react-native";
 
@@ -32,6 +33,8 @@ export const rewardsConfigured = Boolean(
 let rewardsApp: FirebaseApp | null = null;
 let rewardsAuth: Auth | null = null;
 let rewardsFunctions: Functions | null = null;
+// Read-only use: the member doc the Rewards screen has open (live balance).
+let rewardsDb: Firestore | null = null;
 
 if (rewardsConfigured) {
   rewardsApp = getApps().some((a) => a.name === REWARDS_APP_NAME)
@@ -48,6 +51,7 @@ if (rewardsConfigured) {
         });
 
   rewardsFunctions = getFunctions(rewardsApp);
+  rewardsDb = getFirestore(rewardsApp);
 }
 
-export { rewardsAuth, rewardsFunctions };
+export { rewardsAuth, rewardsDb, rewardsFunctions };
