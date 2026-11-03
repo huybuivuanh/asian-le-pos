@@ -197,7 +197,17 @@ declare global {
     /** Rewards member linked at checkout. Points used for the discount
      * (`pointsToRedeem`) are only taken from the balance when the Orders app completes
      * the order (`pointsRedeemed`) — until then they're held, see pendingOnlineRedeemPoints. */
-    loyalty?: { memberId: string; pointsToRedeem?: number; pointsRedeemed?: number };
+    loyalty?: {
+      memberId: string;
+      memberName?: string;
+      pointsToRedeem?: number;
+      pointsRedeemed?: number;
+      /** Staff skipped taking the points (member no longer had them). */
+      redeemWaived?: boolean;
+      pointsEarned?: number;
+      collectedAt?: Timestamp;
+      reversedAt?: Timestamp;
+    };
     paid: boolean;
     printed: boolean;
     createdAt: Timestamp;

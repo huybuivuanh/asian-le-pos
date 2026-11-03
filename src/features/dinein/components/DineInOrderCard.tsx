@@ -1,5 +1,6 @@
 import OrderItemsList from "@/features/order/components/OrderItemsList";
 import OrderTaxBreakdown from "@/features/order/components/OrderTaxBreakdown";
+import RewardsBadge from "@/features/order/components/RewardsBadge";
 import {
   calculateTaxBreakdown,
   EMPTY_TAX_BREAKDOWN,
@@ -81,7 +82,7 @@ export const DineInOrderCard = memo(function DineInOrderCard({
         className="flex-row justify-between items-center"
         onPress={() => onToggleExpand(item.id!)}
       >
-        <View>
+        <View className="flex-1 mr-2">
           <Text className="font-semibold text-gray-800 text-base">
             Table: {item.tableNumber}
           </Text>
@@ -94,6 +95,7 @@ export const DineInOrderCard = memo(function DineInOrderCard({
           <Text className="font-semibold text-gray-800 text-base">
             Ordered At: {formatDate(item.createdAt)}
           </Text>
+          <RewardsBadge loyalty={item.loyalty} />
         </View>
 
         <View>

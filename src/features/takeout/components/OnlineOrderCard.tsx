@@ -1,3 +1,4 @@
+import RewardsBadge from "@/features/order/components/RewardsBadge";
 import { DiscountType, TakeOutFulfillmentKind } from "@/types/enums";
 import { formatDate, formatPhone } from "@/utils/helpers";
 import React, { memo } from "react";
@@ -72,6 +73,7 @@ export const OnlineOrderCard = memo(function OnlineOrderCard({
           <Text className="font-semibold text-gray-800 text-base">
             Ordered At: {formatDate(item.createdAt)}
           </Text>
+          <RewardsBadge loyalty={item.loyalty} />
           {scheduledAt && (
             <Text className="font-semibold text-gray-800 text-base">
               Preorder: {formatDate(scheduledAt)}
