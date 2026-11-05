@@ -185,7 +185,7 @@ dineInOrders       takeOutOrders      categories
 menuItems          optionGroups       options
 menuVersion        tables             customers
 credits            menuChanges        printQueue
-onlineOrders
+onlineOrders       cashDrawer
 ```
 
 `onlineOrders` holds read-only copies of every website order, New ones included (same card colours as take-out orders; New has a "New" badge; rejected ones show as Cancelled). Each copy carries `loyalty.memberId` / `memberName` / `pointsToRedeem` / `pointsRedeemed` / `redeemWaived` / `pointsEarned` / `collectedAt` / `reversedAt` (the last few drive the `RewardsBadge` on order cards, same text as the Orders app): points a member used online are only taken when the Orders app completes the order, so the Rewards member screen subtracts the held ones (`pendingOnlineRedeemPoints`) before showing the balance or allowing a redeem. The balance itself is live: `subscribeToMemberPoints` listens to `members/{id}` in the rewards project (rules allow the POS account a single-doc `get`), so changes made by the Orders app show up while the screen is open. They're written only by the `mirrorOnlineOrder` Cloud Function in the `asianlewebsite` project (`asian-le-website-admin/functions`). The POS never writes to it. Online orders are managed in the Orders app.

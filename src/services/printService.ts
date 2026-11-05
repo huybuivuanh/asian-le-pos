@@ -42,3 +42,16 @@ export async function submitSelectedItemsToPrintQueue(
     createdAt: Timestamp.now(),
   } as Record<string, unknown>);
 }
+
+/**
+ * Asks the print server to pop the cash drawer.
+ * Uses the device clock (not serverTimestamp) on purpose: if this write is
+ * queued while offline, it arrives with an old time and the print server
+ * skips it instead of opening the drawer late.
+ */
+export async function openCashDrawer(): Promise<void> {
+  await setDoc(doc(firebase.db, "cashDrawer", "main"), {
+    openDrawer: true,
+    requestedAt: Timestamp.now(),
+  });
+}

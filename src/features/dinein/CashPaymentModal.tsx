@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import { openCashDrawer } from "@/services/printService";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -27,6 +28,16 @@ export default function CashPaymentModal({ onClose, orderTotal }: Props) {
   }, [cashAmountText]);
 
   const cashDifference = cashReceived - orderTotal;
+
+  // Pop the drawer as soon as a cash payment starts. Fire-and-forget: the
+  // drawer can always be opened by hand, so a failure shouldn't block the modal.
+  const requestDrawer = useCallback(() => {
+    openCashDrawer().catch((e) => console.warn("Failed to open cash drawer", e));
+  }, []);
+
+  useEffect(() => {
+    requestDrawer();
+  }, [requestDrawer]);
 
   const handleClose = () => {
     Keyboard.dismiss();
@@ -120,6 +131,16 @@ export default function CashPaymentModal({ onClose, orderTotal }: Props) {
               </Text>
             </View>
           )}
+
+          <TouchableOpacity
+            className="mb-2 rounded-xl border border-gray-300 py-3"
+            onPress={requestDrawer}
+            activeOpacity={0.85}
+          >
+            <Text className="text-center text-base font-semibold text-gray-800">
+              Open drawer
+            </Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             className="rounded-xl bg-gray-800 py-3.5"
