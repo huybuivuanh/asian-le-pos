@@ -1,10 +1,11 @@
-import { firebase } from "@/lib/firebaseConfig";
+import { toOnlineOrder } from "@/domain/order/onlineOrderMapper";
+import { bizCol } from "@/lib/business";
 import { createStoreCache } from "@/utils/storeCache";
-import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
+import { limit, onSnapshot, orderBy, query } from "firebase/firestore";
 import { create } from "zustand";
 
-// Read-only copies of website orders (written by the website project's
-// mirrorOnlineOrder function). Shown in the take-out list next to POS orders.
+// Website orders (businesses/{id}/orders), read-only here: the website and the
+// Orders app write them. Shown in the take-out list next to POS orders.
 const CACHE_LIMIT = 100;
 const cache = createStoreCache<OnlineOrder[]>("@onlineOrders:cache");
 
@@ -38,7 +39,7 @@ export const useOnlineOrdersStore = create<OnlineOrdersState>((set, get) => ({
     });
 
     const q = query(
-      collection(firebase.db, "onlineOrders"),
+      bizCol("orders"),
       orderBy("createdAt", "desc"),
       limit(CACHE_LIMIT),
     );
@@ -46,14 +47,12 @@ export const useOnlineOrdersStore = create<OnlineOrdersState>((set, get) => ({
       q,
       (snapshot) => {
         gotLiveData = true;
-        const data = snapshot.docs.map(
-          (d) => ({ ...(d.data() as OnlineOrder), id: d.id, source: "online" }) as OnlineOrder,
-        );
+        const data = snapshot.docs.map((d) => toOnlineOrder(d.id, d.data()));
         set({ onlineOrders: data });
         debouncedSave(data);
       },
       (error) => {
-        // Demo database / missing rule: just show no online orders.
+        // Offline / no access: keep showing what we have.
         console.error("❌ Online orders snapshot error:", error);
       },
     );

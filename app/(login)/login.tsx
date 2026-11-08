@@ -1,9 +1,10 @@
 import SafeAreaViewWrapper from "@/layout/SafeAreaViewWrapper";
 import { auth } from "@/lib/firebaseConfig";
+import { useAuth } from "@/providers/AuthProvider";
 import { useRouter } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { Eye, EyeOff } from "lucide-react-native";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Keyboard,
@@ -44,7 +45,16 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
+  const { user, accessError } = useAuth();
   const { width, height } = useWindowDimensions();
+
+  // Leave only once the account passed the POS access check (AuthProvider),
+  // not as soon as Firebase accepts the password.
+  useEffect(() => {
+    if (user) router.replace("/");
+  }, [user, router]);
+
+  const shownError = error || accessError || "";
 
   const formWidth = useMemo(() => {
     const horizontalPadding = width < 480 ? 24 : width < 768 ? 40 : 48;
@@ -66,14 +76,13 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await signInWithEmailAndPassword(auth, trimmed, password);
-      router.replace("/");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setError(mapAuthError(msg));
     } finally {
       setSubmitting(false);
     }
-  }, [email, password, router]);
+  }, [email, password]);
 
   const canSubmit =
     email.trim().length > 0 && password.length > 0 && !submitting;
@@ -111,13 +120,13 @@ export default function LoginPage() {
             </View>
 
             <View className="px-5 pb-8 pt-4 sm:px-7 sm:pb-10 gap-4">
-              {error ? (
+              {shownError ? (
                 <View
                   className="rounded-xl bg-red-50 border border-red-100 px-3 py-2.5"
                   accessibilityRole="alert"
                 >
                   <Text className="text-sm text-red-700 leading-5">
-                    {error}
+                    {shownError}
                   </Text>
                 </View>
               ) : null}

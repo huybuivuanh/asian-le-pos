@@ -1,6 +1,7 @@
+import { bizDoc } from "@/lib/business";
 import { firebase } from "@/lib/firebaseConfig";
 import { TableStatus } from "@/types/enums";
-import { doc, runTransaction } from "firebase/firestore";
+import { runTransaction } from "firebase/firestore";
 
 /**
  * Updates a table's guests/status, and the guests field on its attached order (if any).
@@ -15,7 +16,7 @@ export async function updateTableGuestsAndStatus(
   expectedCurrentOrderId: string | null,
   data: { guests: number; status: TableStatus },
 ): Promise<{ conflict: boolean; liveTable?: Table }> {
-  const tableRef = doc(firebase.db, "tables", tableDocId);
+  const tableRef = bizDoc("tables", tableDocId);
 
   return runTransaction(firebase.db, async (tx) => {
     const snap = await tx.get(tableRef);
@@ -28,7 +29,7 @@ export async function updateTableGuestsAndStatus(
 
     tx.update(tableRef, data);
     if (liveTable.currentOrderId) {
-      tx.update(doc(firebase.db, "dineInOrders", liveTable.currentOrderId), {
+      tx.update(bizDoc("dineInOrders", liveTable.currentOrderId), {
         guests: data.guests,
       });
     }
@@ -45,7 +46,7 @@ export async function changeDineInOrderTable(
 ): Promise<void> {
   if (fromTableNumber === toTableNumber) throw new Error("Select a different table.");
 
-  const orderRef = doc(firebase.db, "dineInOrders", orderId);
+  const orderRef = bizDoc("dineInOrders", orderId);
 
   // Transaction, not a batch: the destination table must be re-checked as still free
   // at commit time — otherwise a device that just claimed it with a brand-new order
@@ -68,8 +69,8 @@ export async function changeDineInOrderTable(
       throw new Error("Cannot find table in app. Open the Tables tab to sync, then try again.");
     }
 
-    const oldTableRef = doc(firebase.db, "tables", fromDocId);
-    const newTableRef = doc(firebase.db, "tables", toDocId);
+    const oldTableRef = bizDoc("tables", fromDocId);
+    const newTableRef = bizDoc("tables", toDocId);
 
     const [oldTableSnap, newTableSnap] = await Promise.all([
       tx.get(oldTableRef),

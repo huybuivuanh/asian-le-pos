@@ -1,8 +1,8 @@
 // src/stores/useMenuStore.ts
+import { bizCol, bizDoc, bizKey } from "@/lib/business";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { collection, doc, getDocs, onSnapshot } from "firebase/firestore";
+import { getDocs, onSnapshot } from "firebase/firestore";
 import { create } from "zustand";
-import { firebase } from "../lib/firebaseConfig";
 
 type MenuState = {
   categories: FoodCategory[];
@@ -32,14 +32,14 @@ export const useMenuStore = create<MenuState>((set) => ({
   loading: true,
 
   subscribeToMenuVersion: () => {
-    const versionDocRef = doc(firebase.db, "menuVersion", "versionDoc");
+    const versionDocRef = bizDoc("menuVersion", "versionDoc");
 
     const unsubscribe = onSnapshot(versionDocRef, async (snapshot) => {
       const remoteVersion = snapshot.data()?.version ?? 0;
 
       // Read from AsyncStorage only once per session; use memory cache after that
       if (localMenuVersionCache === null) {
-        const localVersionStr = await AsyncStorage.getItem(VERSION_KEY);
+        const localVersionStr = await AsyncStorage.getItem(bizKey(VERSION_KEY));
         localMenuVersionCache = localVersionStr ? parseInt(localVersionStr) : -1;
       }
 
@@ -49,8 +49,8 @@ export const useMenuStore = create<MenuState>((set) => ({
           const newMenu = await fetchMenuCollections();
 
           // Update AsyncStorage cache
-          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newMenu));
-          await AsyncStorage.setItem(VERSION_KEY, String(remoteVersion));
+          await AsyncStorage.setItem(bizKey(STORAGE_KEY), JSON.stringify(newMenu));
+          await AsyncStorage.setItem(bizKey(VERSION_KEY), String(remoteVersion));
           localMenuVersionCache = remoteVersion;
 
           // Update Zustand store
@@ -63,7 +63,7 @@ export const useMenuStore = create<MenuState>((set) => ({
         // loaded yet. Skipping this when already loaded prevents an
         // unnecessary AsyncStorage read + full re-render on every snapshot.
         if (useMenuStore.getState().loading) {
-          const cached = await AsyncStorage.getItem(STORAGE_KEY);
+          const cached = await AsyncStorage.getItem(bizKey(STORAGE_KEY));
           if (cached) {
             set({ ...JSON.parse(cached), loading: false });
           } else {
@@ -82,7 +82,7 @@ export const useMenuStore = create<MenuState>((set) => ({
 
   clearData: () => {
     localMenuVersionCache = null;
-    void AsyncStorage.removeItem(VERSION_KEY);
+    void AsyncStorage.removeItem(bizKey(VERSION_KEY));
     set({
       categories: [],
       menuItems: [],
@@ -96,10 +96,10 @@ export const useMenuStore = create<MenuState>((set) => ({
 // Fetch all menu-related collections in parallel
 const fetchMenuCollections = async (): Promise<Pick<MenuState, MenuArrayKeys>> => {
   const [catSnap, itemsSnap, groupsSnap, optionsSnap] = await Promise.all([
-    getDocs(collection(firebase.db, "categories")),
-    getDocs(collection(firebase.db, "menuItems")),
-    getDocs(collection(firebase.db, "optionGroups")),
-    getDocs(collection(firebase.db, "options")),
+    getDocs(bizCol("categories")),
+    getDocs(bizCol("menuItems")),
+    getDocs(bizCol("optionGroups")),
+    getDocs(bizCol("options")),
   ]);
 
   const categories = catSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as (FoodCategory & { order?: number })[];
@@ -116,7 +116,7 @@ const fetchMenuCollections = async (): Promise<Pick<MenuState, MenuArrayKeys>> =
 // Load cached menu on app startup — always clears loading so the UI never
 // blocks waiting for a Firestore round-trip when there is no local cache.
 export const loadCachedMenu = async () => {
-  const cache = await AsyncStorage.getItem(STORAGE_KEY);
+  const cache = await AsyncStorage.getItem(bizKey(STORAGE_KEY));
   if (cache) {
     useMenuStore.setState({ ...JSON.parse(cache), loading: false });
   } else {

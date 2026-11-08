@@ -1,3 +1,4 @@
+import { bizDoc } from "@/lib/business";
 import CashPaymentModal from "@/features/dinein/CashPaymentModal";
 import TableInfoCard from "@/features/dinein/TableInfoCard";
 import { useDineInTableActions } from "@/features/dinein/hooks/useDineInTableActions";
@@ -26,8 +27,7 @@ import {
   showAlert,
 } from "@/utils/helpers";
 import { useFocusEffect, useLocalSearchParams, useRouter, type Href } from "expo-router";
-import { doc, getDocFromServer } from "firebase/firestore";
-import { firebase } from "@/lib/firebaseConfig";
+import { getDocFromServer } from "firebase/firestore";
 import { Check } from "lucide-react-native";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -78,7 +78,7 @@ export default function TablePage() {
 
       (async () => {
         try {
-          const tableSnap = await getDocFromServer(doc(firebase.db, "tables", tableNumber));
+          const tableSnap = await getDocFromServer(bizDoc("tables", tableNumber));
           if (!active || !tableSnap.exists()) return;
           const liveTable = { ...(tableSnap.data() as Table), id: tableSnap.id };
           upsertTable(liveTable);
@@ -96,7 +96,7 @@ export default function TablePage() {
           }
 
           const orderSnap = await getDocFromServer(
-            doc(firebase.db, "dineInOrders", liveTable.currentOrderId),
+            bizDoc("dineInOrders", liveTable.currentOrderId),
           );
           if (!active || !orderSnap.exists()) return;
           setLiveOrderOverride({ ...(orderSnap.data() as DineInOrder), id: orderSnap.id });

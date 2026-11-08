@@ -54,11 +54,7 @@ const firebaseConfig = {
     : {}),
 };
 
-// Check for the default app by name: the Rewards app ("rewards") may be
-// created first, so "any app exists" doesn't mean this one does.
-const app = getApps().some((a) => a.name === "[DEFAULT]")
-  ? getApp()
-  : initializeApp(firebaseConfig);
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 let auth: Auth;
 if (Platform.OS === "web") {
@@ -75,18 +71,8 @@ const firestoreSettings = {
   }),
 };
 
-const productionDb = initializeFirestore(app, firestoreSettings);
-const demoDb = initializeFirestore(app, firestoreSettings, "demo");
+// One database for every business; business data is under businesses/{id}
+// (see src/lib/business.ts). The App Store review Demo is just another business.
+export const firebase = { db: initializeFirestore(app, firestoreSettings) };
 
-// Mutable active database — all stores and services reference firebase.db so
-// switching this object's property is enough to redirect all Firestore calls.
-export const firebase = { db: productionDb };
-
-export function activateDemoDb() {
-  firebase.db = demoDb;
-}
-export function activateProductionDb() {
-  firebase.db = productionDb;
-}
-
-export { auth };
+export { app, auth };

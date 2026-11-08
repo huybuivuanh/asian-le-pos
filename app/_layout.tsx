@@ -5,6 +5,7 @@ import {
   isCustomerDisplayRoute,
   type CustomerDisplayMessage,
 } from "@/lib/customerDisplay";
+import { loadSavedBusiness } from "@/lib/business";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { useCartStore } from "@/stores/useCartStore";
 import { loadCachedCustomers } from "@/stores/useCustomersStore";
@@ -190,10 +191,11 @@ function RootLayout({ children }: { children: React.ReactNode }) {
 
   // Start loading caches immediately — runs in parallel with auth
   // initialization so data is ready the moment the user is authenticated.
+  // Caches are per business, so read the business saved on this device first.
   useEffect(() => {
-    void loadCachedMenu();
-    void loadCachedCustomers();
-    void loadCachedStaff();
+    void loadSavedBusiness().then(() =>
+      Promise.all([loadCachedMenu(), loadCachedCustomers(), loadCachedStaff()]),
+    );
   }, []);
 
   if (webFontsBlocking) {

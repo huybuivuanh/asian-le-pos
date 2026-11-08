@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { bizKey } from "@/lib/business";
 
 const TAKE_OUT_TAB_CACHE_KEY = "@takeOutOrders:tabCache";
 const DINE_IN_TAB_CACHE_KEY = "@dineInOrders:tabCache";
@@ -17,7 +18,7 @@ async function saveTabCache(
       orders,
       timestamp: Date.now(),
     };
-    await AsyncStorage.setItem(storageKey, JSON.stringify(cacheData));
+    await AsyncStorage.setItem(bizKey(storageKey), JSON.stringify(cacheData));
   } catch (error) {
     console.error("❌ Error saving orders tab cache:", error);
   }
@@ -27,7 +28,7 @@ async function loadTabCache(storageKey: string): Promise<{
   orders: AnyOrder[] | null;
 }> {
   try {
-    const cachedData = await AsyncStorage.getItem(storageKey);
+    const cachedData = await AsyncStorage.getItem(bizKey(storageKey));
     if (!cachedData) {
       return { orders: null };
     }
@@ -41,7 +42,7 @@ async function loadTabCache(storageKey: string): Promise<{
 
 async function clearTabCache(storageKey: string): Promise<void> {
   try {
-    await AsyncStorage.removeItem(storageKey);
+    await AsyncStorage.removeItem(bizKey(storageKey));
   } catch (error) {
     console.error("❌ Error clearing orders tab cache:", error);
   }

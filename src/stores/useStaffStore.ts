@@ -1,7 +1,7 @@
+import { bizCol, bizKey } from "@/lib/business";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { collection, getDocs } from "firebase/firestore";
+import { getDocs } from "firebase/firestore";
 import { create } from "zustand";
-import { firebase } from "@/lib/firebaseConfig";
 
 const STAFF_COLLECTION = "users";
 const CACHE_KEY = "@staff:cache";
@@ -23,12 +23,12 @@ export const useStaffStore = create<StaffState>((set, get) => ({
 
   fetchStaff: async () => {
     try {
-      const snap = await getDocs(collection(firebase.db, STAFF_COLLECTION));
+      const snap = await getDocs(bizCol(STAFF_COLLECTION));
       const staff = snap.docs
         .map((d) => ({ id: d.id, ...(d.data() as Omit<StaffMember, "id">) }))
         .sort((a, b) => a.name.localeCompare(b.name));
       set({ staff, loading: false });
-      void AsyncStorage.setItem(CACHE_KEY, JSON.stringify(staff));
+      void AsyncStorage.setItem(bizKey(CACHE_KEY), JSON.stringify(staff));
     } catch (e) {
       console.error("❌ Failed to fetch staff:", e);
       set({ loading: false });
@@ -48,7 +48,7 @@ export const useStaffStore = create<StaffState>((set, get) => ({
 
 export const loadCachedStaff = async () => {
   const [cached, mode] = await Promise.all([
-    AsyncStorage.getItem(CACHE_KEY),
+    AsyncStorage.getItem(bizKey(CACHE_KEY)),
     AsyncStorage.getItem(MODE_KEY),
   ]);
   if (cached) {

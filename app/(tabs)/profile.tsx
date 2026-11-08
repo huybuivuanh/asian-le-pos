@@ -1,4 +1,3 @@
-import RewardsDeviceCard from "@/features/rewards/RewardsDeviceCard";
 import SafeAreaViewWrapper from "@/layout/SafeAreaViewWrapper";
 import { useAuth } from "@/providers/AuthProvider";
 import { useStaffStore } from "@/stores/useStaffStore";
@@ -105,8 +104,6 @@ const Profile = () => {
             </Pressable>
           </View>
         </View>
-
-        <RewardsDeviceCard />
 
         <View className="mt-5">
           <Pressable

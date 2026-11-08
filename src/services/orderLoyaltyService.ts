@@ -1,5 +1,6 @@
 // Saves rewards results onto the POS order (POS Firestore). The rewards
 // function runs first; these writes record what it confirmed.
+import { bizDoc } from "@/lib/business";
 import { firebase } from "@/lib/firebaseConfig";
 import {
   reverseOrder,
@@ -9,7 +10,7 @@ import {
 } from "@/services/rewardsService";
 import { DiscountType, OrderType } from "@/types/enums";
 import { calculateTaxBreakdown, orderItemsSubtotal } from "@/utils/helpers";
-import { doc, getDoc, runTransaction, serverTimestamp, updateDoc } from "firebase/firestore";
+import { getDoc, runTransaction, serverTimestamp, updateDoc } from "firebase/firestore";
 
 export const orderCollection = (orderType: OrderType) =>
   orderType === OrderType.DineIn ? "dineInOrders" : "takeOutOrders";
@@ -21,7 +22,7 @@ export async function applyRedemptionToOrder(
   member: RewardsMember,
   result: RedeemPointsResult,
 ): Promise<void> {
-  const ref = doc(firebase.db, orderCollection(orderType), orderId);
+  const ref = bizDoc(orderCollection(orderType), orderId);
   await runTransaction(firebase.db, async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists()) throw new Error("Order not found.");
@@ -58,7 +59,7 @@ export async function markPointsCollected(
   member: RewardsMember,
   result: EarnPointsResult,
 ): Promise<void> {
-  const ref = doc(firebase.db, orderCollection(orderType), orderId);
+  const ref = bizDoc(orderCollection(orderType), orderId);
   await runTransaction(firebase.db, async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists()) throw new Error("Order not found.");
@@ -82,7 +83,7 @@ export async function reverseCancelledOrderRewards(
   orderType: OrderType,
   orderId: string,
 ): Promise<string | null> {
-  const ref = doc(firebase.db, orderCollection(orderType), orderId);
+  const ref = bizDoc(orderCollection(orderType), orderId);
   let loyalty: OrderLoyalty | undefined;
   try {
     // Read fresh: points may have been collected on another device moments ago.

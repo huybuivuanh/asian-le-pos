@@ -1,6 +1,6 @@
-import { collection, onSnapshot } from "firebase/firestore";
+import { bizCol } from "@/lib/business";
+import { onSnapshot } from "firebase/firestore";
 import { create } from "zustand";
-import { firebase } from "@/lib/firebaseConfig";
 
 const CREDITS_COLLECTION = "credits";
 
@@ -22,7 +22,7 @@ export const useCreditsStore = create<CreditsState>((set) => ({
 
   subscribeToCredits: () => {
     const unsubscribe = onSnapshot(
-      collection(firebase.db, CREDITS_COLLECTION),
+      bizCol(CREDITS_COLLECTION),
       (snapshot) => {
         const credits = snapshot.docs
           .map((d) => ({ id: d.id, ...(d.data() as Omit<Credit, "id">) } as Credit))

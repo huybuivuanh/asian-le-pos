@@ -26,7 +26,6 @@ import {
   canUseCustomerScreen,
   useCustomerScreenScan,
 } from "@/features/rewards/rewardsCustomerDisplay";
-import { useRewardsAuthStore } from "@/stores/useRewardsAuthStore";
 import { OrderType } from "@/types/enums";
 import { useRouter } from "expo-router";
 
@@ -46,12 +45,6 @@ export default function RewardsModal({ orderId, orderType, onClose, onOpenMember
   const router = useRouter();
   const [step, setStep] = useState<Step>("choose");
   const [phoneText, setPhoneText] = useState("");
-  const rewardsConfigured = useRewardsAuthStore((s) => s.configured);
-  const rewardsReady = useRewardsAuthStore((s) => s.ready);
-  const rewardsUser = useRewardsAuthStore((s) => s.user);
-  const deviceSignedIn = rewardsConfigured && rewardsUser !== null;
-  // Saved login is still being restored right after app start.
-  const restoring = rewardsConfigured && !rewardsReady;
 
   const phone = useMemo(() => rewardsPhoneDigits(phoneText), [phoneText]);
   const phoneValid = phone.length === 10;
@@ -95,33 +88,9 @@ export default function RewardsModal({ orderId, orderType, onClose, onOpenMember
             accessibilityLabel="Close rewards"
           />
           <View className="relative z-10 w-full max-w-md self-center rounded-2xl bg-white p-5 shadow-xl">
-            {(deviceSignedIn || restoring) && (
-              <Text className="mb-4 text-center text-lg font-bold text-gray-900">Rewards</Text>
-            )}
+            <Text className="mb-4 text-center text-lg font-bold text-gray-900">Rewards</Text>
 
-            {restoring && (
-              <View className="items-center py-6">
-                <ActivityIndicator color="#DA251D" />
-              </View>
-            )}
-
-            {!deviceSignedIn && !restoring && (
-              <View className="items-center pt-2">
-                <View className="mb-3 h-14 w-14 items-center justify-center rounded-full bg-amber-100">
-                  <Ionicons name="lock-closed-outline" size={28} color="#b45309" />
-                </View>
-                <Text className="mb-2 text-center text-lg font-bold text-gray-900">
-                  {rewardsConfigured ? "Admin access required" : "Rewards unavailable"}
-                </Text>
-                <Text className="text-center text-sm text-gray-600">
-                  {rewardsConfigured
-                    ? "Rewards isn't set up on this device yet. Ask an admin to sign in to Rewards from the Profile tab."
-                    : "Rewards isn't set up in this build."}
-                </Text>
-              </View>
-            )}
-
-            {deviceSignedIn && step === "choose" && (
+            {step === "choose" && (
               <View className="flex-row">
                 <TouchableOpacity
                   className="mr-2 flex-1 items-center rounded-xl bg-red-600 py-5"
@@ -142,7 +111,7 @@ export default function RewardsModal({ orderId, orderType, onClose, onOpenMember
               </View>
             )}
 
-            {deviceSignedIn && step === "phone" && (
+            {step === "phone" && (
               <>
                 <Text className="mb-1 text-sm font-medium text-gray-700">Phone number</Text>
                 <TextInput

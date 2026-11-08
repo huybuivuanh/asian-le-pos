@@ -1,3 +1,4 @@
+import { bizDoc } from "@/lib/business";
 import {
   collectBlockedReason,
   DOLLARS_PER_REDEEM_STEP,
@@ -10,7 +11,6 @@ import {
   hasActiveRedemption,
 } from "@/domain/rewards/rewardsRules";
 import SafeAreaViewWrapper from "@/layout/SafeAreaViewWrapper";
-import { firebase } from "@/lib/firebaseConfig";
 import {
   applyRedemptionToOrder,
   markPointsCollected,
@@ -30,7 +30,7 @@ import { useRewardsCustomerDisplay } from "@/features/rewards/rewardsCustomerDis
 import { useOnlineOrdersStore } from "@/stores/useOnlineOrdersStore";
 import MessageModal from "@/ui/MessageModal";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { doc, onSnapshot } from "firebase/firestore";
+import { onSnapshot } from "firebase/firestore";
 import { Minus, Plus } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
@@ -100,7 +100,7 @@ export default function RewardsMemberScreen() {
   useEffect(() => {
     if (!orderId) return;
     return onSnapshot(
-      doc(firebase.db, orderCollection(orderType), orderId),
+      bizDoc(orderCollection(orderType), orderId),
       (snap) => {
         if (!snap.exists()) {
           setOrderMissing(true);

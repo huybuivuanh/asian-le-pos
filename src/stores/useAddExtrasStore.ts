@@ -1,6 +1,6 @@
-import { collection, onSnapshot } from "firebase/firestore";
+import { bizCol } from "@/lib/business";
+import { onSnapshot } from "firebase/firestore";
 import { create } from "zustand";
-import { firebase } from "@/lib/firebaseConfig";
 
 const ADD_EXTRAS_COLLECTION = "addExtras";
 
@@ -21,7 +21,7 @@ export const useAddExtrasStore = create<AddExtrasState>((set) => ({
 
   subscribeToAddExtras: () => {
     const unsubscribe = onSnapshot(
-      collection(firebase.db, ADD_EXTRAS_COLLECTION),
+      bizCol(ADD_EXTRAS_COLLECTION),
       (snapshot) => {
         const addExtras = snapshot.docs
           .map((d) => ({ id: d.id, ...(d.data() as Omit<ExtraCatalogItem, "id">) } as ExtraCatalogItem))

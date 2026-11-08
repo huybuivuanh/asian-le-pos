@@ -91,7 +91,7 @@ Never push or replace to `table/[T]` after a dine-in submit — the table page i
 | `useCreditsStore` | Store credits/refunds — cache-first, lazy loaded |
 | `useMenuChangesStore` | Item name substitution reference (from→to) — cache-first |
 | `useNetworkStore` | Network connectivity status via NetInfo |
-| `useOnlineOrdersStore` | Read-only online (website) orders from `onlineOrders` — cache-first + live; merged into the Out Orders list by `useTakeOutHistoryList` |
+| `useOnlineOrdersStore` | Read-only online (website) orders from the business's `orders` — cache-first + live; merged into the Out Orders list by `useTakeOutHistoryList` |
 
 All stores are cleared on logout to prevent data leaks.
 
@@ -180,24 +180,35 @@ Pure business logic with no side effects:
 Each menu item carries a `kitchenType`. When an order is printed, items are filtered/routed to the appropriate kitchen print queue by `KitchenType`. Orders are grouped by kitchen destination for kitchen display.
 
 ### Firestore Collections
+One Firebase project (`asianlepos`) is shared by the POS, KDS, pos-admin, Orders app, website, website-admin and the rewards app. **All business data lives under `businesses/{businessId}/`** — always build paths with `bizCol(name)` / `bizDoc(name, id)` from `src/lib/business.ts`, never `collection(firebase.db, …)`. The only top-level collection the POS reads is `appConfig` (`appConfig/posVersion` for the force update).
+
 ```
-dineInOrders       takeOutOrders      categories
-menuItems          optionGroups       options
-menuVersion        tables             customers
-credits            menuChanges        printQueue
-onlineOrders       cashDrawer
+businesses/{businessId}/
+  dineInOrders   takeOutOrders   tables        customers     customersVersion
+  categories     menuItems       optionGroups  options       menuVersion
+  menuChanges    addExtras       credits       printQueue    cashDrawer
+  users          (staff list)
+  orders         (website orders; read-only in the POS)
+  members/{uid}  (rewards; + transactions/)    phoneNumbers  (rewards)
+appConfig/posVersion
 ```
 
-`onlineOrders` holds read-only copies of every website order, New ones included (same card colours as take-out orders; New has a "New" badge; rejected ones show as Cancelled). Each copy carries `loyalty.memberId` / `memberName` / `pointsToRedeem` / `pointsRedeemed` / `redeemWaived` / `pointsEarned` / `collectedAt` / `reversedAt` (the last few drive the `RewardsBadge` on order cards, same text as the Orders app): points a member used online are only taken when the Orders app completes the order, so the Rewards member screen subtracts the held ones (`pendingOnlineRedeemPoints`) before showing the balance or allowing a redeem. The balance itself is live: `subscribeToMemberPoints` listens to `members/{id}` in the rewards project (rules allow the POS account a single-doc `get`), so changes made by the Orders app show up while the screen is open. They're written only by the `mirrorOnlineOrder` Cloud Function in the `asianlewebsite` project (`asian-le-website-admin/functions`). The POS never writes to it. Online orders are managed in the Orders app.
+Security rules, indexes and the `set-claims` / `seed-demo` scripts live in the separate repo `D:\Projects\asian-le-firebase` — the only place rules are deployed from. The App Store review Demo is just another business (`seed-demo`).
 
-### Cloud Functions (`functions/src/index.ts`)
-Two scheduled functions:
-- `purgeStaleOrders` — Daily at 4 AM UTC: deletes `dineInOrders`, `takeOutOrders` and `onlineOrders` older than ~30 days in batches of 500
-- `purgeStalePrintQueue` — Daily at midnight America/Regina: clears entire `printQueue` collection
+`orders` are the website's orders, New ones included (same card colours as take-out orders; New has a "New" badge; rejected ones show as Cancelled). The POS reads them directly and maps them with `src/domain/order/onlineOrderMapper.ts` (into `OnlineOrder`); it never writes them — they're managed in the Orders app. Each carries `loyalty.memberId` / `memberName` / `pointsToRedeem` / `pointsRedeemed` / `redeemWaived` / `pointsEarned` / `collectedAt` / `reversedAt` (the last few drive the `RewardsBadge` on order cards, same text as the Orders app): points a member used online are only taken when the Orders app completes the order, so the Rewards member screen subtracts the held ones (`pendingOnlineRedeemPoints`) before showing the balance or allowing a redeem. The balance itself is live: `subscribeToMemberPoints` listens to `businesses/{id}/members/{memberId}` (rules allow staff a single-doc `get`).
+
+Rewards actions (`lookupMember`, `earnPoints`, `redeemPoints`, `reverseOrder`) are Cloud Functions in the `asian-le-rewards` repo, called with the staff member's own login; they take the business from the `businessId` claim.
+
+### Cloud Functions (`functions/src/index.ts`, codebase `pos`)
+Two scheduled functions, covering every business via collection group queries:
+- `purgeStaleOrders` — Daily at 4 AM UTC: deletes `dineInOrders` and `takeOutOrders` older than ~30 days in batches of 500 (website `orders` are purged by the website's own function)
+- `purgeStalePrintQueue` — Daily at midnight America/Regina: clears every business's `printQueue`
 
 ### Auth
 - **Web:** `getAuth()` (default session storage)
 - **Native:** `initializeAuth()` with `getReactNativePersistence(ReactNativeAsyncStorage)` for persistent login
+- **Who can sign in:** accounts with custom claims `{ businessId, role: "staff" | "admin" }` (set with `asian-le-firebase/scripts/set-claims.mjs`). `AuthProvider` checks the claims after sign-in, signs out anyone else with a message on the login screen, and sets the current business (`setBusiness`). The business id is saved on the device so cached data loads at startup; offline with an expired token it trusts the business saved for that same account. Customers (rewards accounts) have no role.
+- **Device caches** (menu, customers, staff, tables, online orders, order tabs) are keyed per business with `bizKey()`.
 
 ## Key Config
 - **Path alias:** `@/*` maps to `./src/*` (tsconfig)

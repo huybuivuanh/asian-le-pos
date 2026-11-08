@@ -1,3 +1,4 @@
+import { bizDoc } from "@/lib/business";
 import { firebase } from "@/lib/firebaseConfig";
 import { DiscountType, OrderStatus, OrderType, TableStatus } from "@/types/enums";
 import { kitchenTypeSortRank } from "@/features/order/orderItemSections";
@@ -5,7 +6,7 @@ import { ungroupOrderItems } from "@/utils/groupOrderItems";
 import { redemptionDiscountInputs } from "@/domain/rewards/rewardsRules";
 import { calculateTaxBreakdown, orderItemsSubtotal } from "@/utils/helpers";
 import { normalizeOrderItemTextForDb } from "@/utils/normalizeOrderItemText";
-import { doc, runTransaction, setDoc, Timestamp, writeBatch } from "firebase/firestore";
+import { runTransaction, setDoc, Timestamp, writeBatch } from "firebase/firestore";
 
 function discountInputs(order: OrderDraft): { type: DiscountType; value: number } {
   const d = order.taxBreakDown?.discount;
@@ -56,7 +57,7 @@ export async function submitOrder(
     payload.phoneNumber = order.phoneNumber ?? null;
     payload.fulfillment = order.fulfillment;
 
-    await setDoc(doc(firebase.db, "takeOutOrders", order.id), payload);
+    await setDoc(bizDoc("takeOutOrders", order.id), payload);
     return { merged: false };
   }
 
@@ -67,8 +68,8 @@ export async function submitOrder(
     throw new Error("Cannot find table in app. Open the Tables tab to sync, then try again.");
   }
 
-  const orderRef = doc(firebase.db, "dineInOrders", order.id);
-  const tableRef = doc(firebase.db, "tables", tableDocId);
+  const orderRef = bizDoc("dineInOrders", order.id);
+  const tableRef = bizDoc("tables", tableDocId);
 
   // Transaction, not a batch: the table's currentOrderId must be read fresh from
   // the server at commit time, not from the client's possibly-stale local cache.
@@ -82,7 +83,7 @@ export async function submitOrder(
     const existingOrderId = (tableSnap.data() as Table).currentOrderId;
 
     if (existingOrderId) {
-      const existingOrderRef = doc(firebase.db, "dineInOrders", existingOrderId);
+      const existingOrderRef = bizDoc("dineInOrders", existingOrderId);
       const existingSnap = await tx.get(existingOrderRef);
 
       if (existingSnap.exists()) {
@@ -166,7 +167,7 @@ export async function updateOrder(order: OrderDraft): Promise<void> {
   }
 
   const batch = writeBatch(firebase.db);
-  batch.update(doc(firebase.db, firestoreCollection, order.id), updateData);
+  batch.update(bizDoc(firestoreCollection, order.id), updateData);
   await batch.commit();
 }
 
@@ -179,10 +180,10 @@ export async function cancelOrder(order: OrderDraft, tableDocId?: string | null)
     order.status === OrderStatus.Cancelled ? OrderStatus.InProgress : OrderStatus.Cancelled;
 
   const batch = writeBatch(firebase.db);
-  batch.update(doc(firebase.db, firestoreCollection, order.id), { status: nextStatus });
+  batch.update(bizDoc(firestoreCollection, order.id), { status: nextStatus });
 
   if (order.orderType === OrderType.DineIn && tableDocId && nextStatus === OrderStatus.Cancelled) {
-    batch.update(doc(firebase.db, "tables", tableDocId), {
+    batch.update(bizDoc("tables", tableDocId), {
       status: TableStatus.Open,
       currentOrderId: null,
       guests: 0,
@@ -205,10 +206,10 @@ export async function completeOrder(order: OrderDraft, tableDocId?: string | nul
         : OrderStatus.Completed;
 
   const batch = writeBatch(firebase.db);
-  batch.update(doc(firebase.db, firestoreCollection, order.id), { status: nextStatus });
+  batch.update(bizDoc(firestoreCollection, order.id), { status: nextStatus });
 
   if (order.orderType === OrderType.DineIn && tableDocId && nextStatus === OrderStatus.Completed) {
-    batch.update(doc(firebase.db, "tables", tableDocId), {
+    batch.update(bizDoc("tables", tableDocId), {
       status: TableStatus.Open,
       currentOrderId: null,
       guests: 0,
@@ -221,7 +222,7 @@ export async function completeOrder(order: OrderDraft, tableDocId?: string | nul
 /** Writes an already-mutated orderItems array to Firestore (used by paid-toggle debounce). */
 export async function updateLineItemsPaid(orderId: string, items: OrderItem[]): Promise<void> {
   const batch = writeBatch(firebase.db);
-  batch.update(doc(firebase.db, "dineInOrders", orderId), { orderItems: items });
+  batch.update(bizDoc("dineInOrders", orderId), { orderItems: items });
   await batch.commit();
 }
 
@@ -231,6 +232,6 @@ export async function markPaid(order: OrderDraft, paid: boolean): Promise<void> 
   const firestoreCollection = order.orderType === OrderType.DineIn ? "dineInOrders" : "takeOutOrders";
   const nextItems = (order.orderItems ?? []).map((it) => ({ ...it, paid }));
   const batch = writeBatch(firebase.db);
-  batch.update(doc(firebase.db, firestoreCollection, order.id), { orderItems: nextItems });
+  batch.update(bizDoc(firestoreCollection, order.id), { orderItems: nextItems });
   await batch.commit();
 }

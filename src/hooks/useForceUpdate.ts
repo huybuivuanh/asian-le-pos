@@ -24,9 +24,9 @@ function isVersionLower(current: string, min: string): boolean {
 }
 
 /**
- * Live-checks the app version against `appConfig/version` in Firestore. Runs only while
- * `enabled` (i.e. the user is authenticated) — the doc is read under the same auth-gated
- * rules as everything else, so no public/unauthenticated Firestore access is needed.
+ * Live-checks the app version against `appConfig/posVersion` in Firestore (top level,
+ * shared by every business; each app has its own doc). Runs only while `enabled`
+ * (i.e. the user is authenticated).
  * Uses onSnapshot rather than a one-time read so a mandatory update pushed while staff are
  * mid-session takes effect without requiring them to relaunch the app.
  */
@@ -35,7 +35,7 @@ export function useForceUpdate(enabled: boolean) {
 
   useEffect(() => {
     if (!enabled || Platform.OS === "web") return;
-    const ref = doc(firebase.db, "appConfig", "version");
+    const ref = doc(firebase.db, "appConfig", "posVersion");
     const unsubscribe = onSnapshot(ref, (snap) => {
       setConfig((snap.data() as UpdateConfig) ?? null);
     });

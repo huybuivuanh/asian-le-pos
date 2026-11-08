@@ -1,5 +1,5 @@
+import { bizCol } from "@/lib/business";
 import {
-  collection,
   getDocs,
   limit,
   onSnapshot,
@@ -7,7 +7,6 @@ import {
   query,
 } from "firebase/firestore";
 import { create } from "zustand";
-import { firebase } from "../lib/firebaseConfig";
 import {
   clearDineInOrdersTabCache,
   loadDineInOrdersTabCache,
@@ -47,7 +46,7 @@ function debouncedSaveDineInCache(data: DineInOrder[]) {
 
 function dineInTabQuery() {
   return query(
-    collection(firebase.db, "dineInOrders"),
+    bizCol("dineInOrders"),
     orderBy("createdAt", "desc"),
     limit(CACHE_LIMIT),
   );

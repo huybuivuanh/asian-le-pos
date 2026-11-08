@@ -1,8 +1,8 @@
+import { bizCol, bizDoc } from "@/lib/business";
 import { sortTables } from "@/utils/helpers";
 import { createStoreCache } from "@/utils/storeCache";
-import { collection, doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { onSnapshot, updateDoc } from "firebase/firestore";
 import { create } from "zustand";
-import { firebase } from "../lib/firebaseConfig";
 
 const cache = createStoreCache<Table[]>("@tables:cache");
 
@@ -33,7 +33,7 @@ export const useTableStore = create<TableStore>((set, get) => ({
   getTableDocId: (tableNumber) => tableNumber || undefined,
 
   updateTable: async (tableDocId, data) => {
-    const tableRef = doc(firebase.db, "tables", tableDocId);
+    const tableRef = bizDoc("tables", tableDocId);
     await updateDoc(tableRef, data);
     set((state) => ({
       tables: state.tables.map((t) =>
@@ -63,7 +63,7 @@ export const useTableStore = create<TableStore>((set, get) => ({
       }
     });
 
-    const tablesRef = collection(firebase.db, "tables");
+    const tablesRef = bizCol("tables");
     const unsubscribe = onSnapshot(tablesRef, (snapshot) => {
       const tablesData: Table[] = snapshot.docs.map((docSnap) => {
         const raw = docSnap.data() as Partial<Table>;

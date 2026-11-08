@@ -171,8 +171,8 @@ declare global {
     currentOrderId: string | null;
   }
 
-  /** Read-only copy of a website order, written by asian-le-website-admin's
-   * mirrorOnlineOrder function into `onlineOrders`. The POS never writes it. */
+  /** A website order as the POS shows it (businesses/{id}/orders, mapped by
+   * src/domain/order/onlineOrderMapper.ts). The POS never writes it. */
   interface OnlineOrderItem {
     name: string;
     /** Per-unit price including options. */

@@ -1,3 +1,4 @@
+import { bizDoc } from "@/lib/business";
 import { firebase } from "@/lib/firebaseConfig";
 import {
   DiscountType,
@@ -9,7 +10,7 @@ import { redemptionDiscountInputs } from "@/domain/rewards/rewardsRules";
 import { ungroupOrderItems } from "@/utils/groupOrderItems";
 import { calculateTaxBreakdown, orderItemsSubtotal } from "@/utils/helpers";
 import { normalizeOrderItemTextForDb } from "@/utils/normalizeOrderItemText";
-import { doc, runTransaction, Timestamp } from "firebase/firestore";
+import { runTransaction, Timestamp } from "firebase/firestore";
 
 export async function convertDineInToTakeOut(
   args: {
@@ -34,8 +35,8 @@ export async function convertDineInToTakeOut(
   if (orderItems.length === 0)
     throw new Error("Cannot convert an empty order.");
 
-  const orderRef = doc(firebase.db, "dineInOrders", orderId);
-  const tableRef = doc(firebase.db, "tables", tableDocId);
+  const orderRef = bizDoc("dineInOrders", orderId);
+  const tableRef = bizDoc("tables", tableDocId);
 
   // Transaction, not a batch: the table's currentOrderId must be re-checked at commit
   // time, not from a plain read taken before the batch commits — otherwise a device
@@ -117,7 +118,7 @@ export async function convertDineInToTakeOut(
     };
 
     tx.delete(orderRef);
-    tx.set(doc(firebase.db, "takeOutOrders", orderId), takeOutPayload);
+    tx.set(bizDoc("takeOutOrders", orderId), takeOutPayload);
     tx.update(tableRef, {
       status: TableStatus.Open,
       currentOrderId: null,
@@ -142,8 +143,8 @@ export async function convertTakeOutToDineIn(
     );
   }
 
-  const takeOutRef = doc(firebase.db, "takeOutOrders", orderId);
-  const tableRef = doc(firebase.db, "tables", tableDocId);
+  const takeOutRef = bizDoc("takeOutOrders", orderId);
+  const tableRef = bizDoc("tables", tableDocId);
 
   // Transaction, not a batch: the table must be re-checked as still free at commit
   // time — otherwise a device that just claimed this table with a brand-new order
@@ -227,7 +228,7 @@ export async function convertTakeOutToDineIn(
     };
 
     tx.delete(takeOutRef);
-    tx.set(doc(firebase.db, "dineInOrders", orderId), dineInPayload);
+    tx.set(bizDoc("dineInOrders", orderId), dineInPayload);
     tx.update(tableRef, {
       status: TableStatus.Occupied,
       currentOrderId: orderId,

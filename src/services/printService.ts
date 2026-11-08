@@ -1,13 +1,13 @@
-import { firebase } from "@/lib/firebaseConfig";
+import { bizDoc } from "@/lib/business";
 import { DiscountType } from "@/types/enums";
 import { calculateTaxBreakdown, generateFirestoreId } from "@/utils/helpers";
-import { doc, setDoc, Timestamp } from "firebase/firestore";
+import { setDoc, Timestamp } from "firebase/firestore";
 
 export async function submitToPrintQueue(order: OrderDraft): Promise<void> {
   if (!order.id) throw new Error("Order ID is required to print.");
 
   await setDoc(
-    doc(firebase.db, "printQueue", order.id),
+    bizDoc("printQueue", order.id),
     {
       ...order,
       orderItems: order.orderItems ?? [],
@@ -33,7 +33,7 @@ export async function submitSelectedItemsToPrintQueue(
   const selectedTaxBreakDown = calculateTaxBreakdown(selectedSubtotal, DiscountType.None, 0);
 
   const queueDocId = generateFirestoreId();
-  await setDoc(doc(firebase.db, "printQueue", queueDocId), {
+  await setDoc(bizDoc("printQueue", queueDocId), {
     ...order,
     orderItems: selectedItems,
     taxBreakDown: selectedTaxBreakDown,
@@ -50,7 +50,7 @@ export async function submitSelectedItemsToPrintQueue(
  * skips it instead of opening the drawer late.
  */
 export async function openCashDrawer(): Promise<void> {
-  await setDoc(doc(firebase.db, "cashDrawer", "main"), {
+  await setDoc(bizDoc("cashDrawer", "main"), {
     openDrawer: true,
     requestedAt: Timestamp.now(),
   });

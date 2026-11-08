@@ -1,9 +1,13 @@
-// Calls the Rewards (loyalty) project's Cloud Functions as the signed-in POS
-// device. Each function's response is the confirmation — there are no callbacks.
-import { rewardsDb, rewardsFunctions } from "@/lib/rewardsFirebase";
-import { doc, onSnapshot } from "firebase/firestore";
+// Calls the rewards Cloud Functions as the signed-in staff account. The functions
+// take the business from the account's `businessId` claim, so a POS only ever
+// reaches its own business's members. Each response is the confirmation.
+import { bizDoc } from "@/lib/business";
+import { app } from "@/lib/firebaseConfig";
+import { onSnapshot } from "firebase/firestore";
 import { FirebaseError } from "firebase/app";
-import { httpsCallable } from "firebase/functions";
+import { getFunctions, httpsCallable } from "firebase/functions";
+
+const functions = getFunctions(app);
 
 export type RewardsMember = {
   memberId: string;
@@ -35,11 +39,8 @@ export type ReverseOrderResult = {
 };
 
 async function call<In, Out>(name: string, data: In): Promise<Out> {
-  if (!rewardsFunctions) {
-    throw new Error("Rewards isn't set up in this build.");
-  }
   try {
-    const result = await httpsCallable<In, Out>(rewardsFunctions, name)(data);
+    const result = await httpsCallable<In, Out>(functions, name)(data);
     return result.data;
   } catch (err) {
     throw new Error(rewardsErrorMessage(err));
@@ -53,9 +54,9 @@ export function rewardsErrorMessage(err: unknown): string {
       case "functions/not-found":
         return err.message || "No rewards member found.";
       case "functions/unauthenticated":
-        return "Admin access required. Ask an admin to sign in to Rewards from the Profile tab.";
+        return "You're signed out. Sign in again to use Rewards.";
       case "functions/permission-denied":
-        return "This Rewards account doesn't have POS access.";
+        return "This account can't use Rewards. Ask an admin.";
       case "functions/already-exists":
         return "Points were already collected for this order.";
       case "functions/failed-precondition":
@@ -88,17 +89,16 @@ export async function lookupMember(input: LookupMemberInput): Promise<RewardsMem
 }
 
 /**
- * Live points balance of one member (members/{id} in the rewards project; the rules let
- * the POS account read a single member). Returns an unsubscribe. On error (offline, or
- * the rule not deployed) it just stops — callers keep the balance from lookupMember.
+ * Live points balance of one member (businesses/{id}/members/{memberId}; the rules let
+ * staff read a single member). Returns an unsubscribe. On error (offline) it just
+ * stops — callers keep the balance from lookupMember.
  */
 export function subscribeToMemberPoints(
   memberId: string,
   onPoints: (points: number) => void,
 ): () => void {
-  if (!rewardsDb) return () => {};
   return onSnapshot(
-    doc(rewardsDb, "members", memberId),
+    bizDoc("members", memberId),
     (snap) => {
       const points = snap.get("points");
       if (typeof points === "number") onPoints(points);

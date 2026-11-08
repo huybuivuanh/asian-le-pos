@@ -1,6 +1,6 @@
-import { collection, onSnapshot } from "firebase/firestore";
+import { bizCol } from "@/lib/business";
+import { onSnapshot } from "firebase/firestore";
 import { create } from "zustand";
-import { firebase } from "@/lib/firebaseConfig";
 
 const MENU_CHANGES_COLLECTION = "menuChanges";
 
@@ -25,7 +25,7 @@ export const useMenuChangesStore = create<MenuChangesState>((set) => ({
 
   subscribeToMenuChanges: () => {
     const unsubscribe = onSnapshot(
-      collection(firebase.db, MENU_CHANGES_COLLECTION),
+      bizCol(MENU_CHANGES_COLLECTION),
       (snapshot) => {
         const menuChanges = snapshot.docs
           .map((d) => ({ id: d.id, ...(d.data() as Omit<MenuChange, "id">) } as MenuChange))
