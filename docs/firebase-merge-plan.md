@@ -87,7 +87,9 @@ Status (2026-11-08):
         Local `.env` files of the Orders app, website, website-admin and rewards now point at
         `asianlepos` (old ones kept as `.env.*-old.local`, git-ignored). The rewards app's
         native Google client IDs are still the old project's: replace before native builds.
-  - [ ] Demo business (`seed-demo`). Orders app review now needs a Demo **admin** account.
+  - [x] Demo business `3RO5BeP6IAwQNKbQIqLG` seeded (2026-11-09): menus, hours, settings (not paused),
+        tables. Review accounts `review@asianle.ca` (Demo admin) and `review-customer@asianle.ca`
+        (100,000 points, phone 6045550100).
   - [ ] Not yet deployed: POS functions (delete old `purgeStale*` first), website functions
         (needs Twilio/Resend secrets in `asianlepos`).
   - Keys: `D:\Projects\Key\pos.json` (asianlepos), `D:\Projects\Key\website.json` (asianlewebsite).
@@ -242,7 +244,7 @@ The Admin SDK skips rules, so:
 ## Demo business (App Store review)
 
 - `businesses/{demoId}` with a sample menu, tables and a few customers.
-- Reviewer staff account: `{ businessId: demoId, role: "staff" }` for POS review. (The Orders app is admin only, so its review needs an admin of the Demo business.)
+- Reviewer account `review@asianle.ca`: `{ businessId: demoId, role: "admin" }` (admin of Demo only) for POS / KDS / Orders app review.
 - Reviewer customer account: `businesses/{demoId}/members/{uid}` with a very large balance
   (e.g. 100,000 points), plus a `businessId: demoId` claim so the rewards app opens the Demo
   business. The reviewer shows its QR in the rewards app, or the Demo POS finds it by phone.
