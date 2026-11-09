@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase-admin/app";
-import type { Query } from "firebase-admin/firestore";
+import type { CollectionReference, Query } from "firebase-admin/firestore";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { logger } from "firebase-functions";
 import { onSchedule } from "firebase-functions/v2/scheduler";
@@ -10,9 +10,12 @@ initializeApp();
 const RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const BATCH_SIZE = 500;
 
-// POS orders in every business (businesses/{id}/dineInOrders, …), found with collection
-// group queries (indexes in asian-le-firebase/firestore.indexes.json). Website orders
-// are cleaned up by the website's own function.
+// POS orders in every business (businesses/{id}/dineInOrders, …). Website orders are
+// cleaned up by the website's own function.
+//
+// Each business is queried on its own path, never with a collection group query: the old
+// top-level dineInOrders / takeOutOrders / printQueue (pre-merge data, kept as a backup)
+// have the same names and must not be touched.
 const ORDER_COLLECTIONS = ["dineInOrders", "takeOutOrders"] as const;
 
 const PRINT_QUEUE_COLLECTION = "printQueue";
@@ -31,13 +34,16 @@ async function deleteQueryInBatches(query: Query): Promise<number> {
   return deleted + rest;
 }
 
-/** Deletes every document in a collection group, i.e. that collection in every
- * business (Firestore has no single “drop collection” API). */
-async function deleteEntireCollectionGroupInBatches(
-  collectionId: string,
+/** businesses/{id} refs (doc ids only, nothing is read). */
+async function businessRefs() {
+  return getFirestore().collection("businesses").listDocuments();
+}
+
+/** Deletes every document in one collection (Firestore has no single “drop collection” API). */
+async function deleteEntireCollectionInBatches(
+  col: CollectionReference,
 ): Promise<number> {
   const db = getFirestore();
-  const col = db.collectionGroup(collectionId);
   let total = 0;
 
   while (true) {
@@ -66,15 +72,16 @@ export const purgeStaleOrders = onSchedule(
     timeoutSeconds: 540,
   },
   async () => {
-    const db = getFirestore();
     const cutoff = Timestamp.fromMillis(Date.now() - RETENTION_MS);
     let total = 0;
 
-    for (const name of ORDER_COLLECTIONS) {
-      const q = db.collectionGroup(name).where("createdAt", "<", cutoff);
-      const n = await deleteQueryInBatches(q);
-      total += n;
-      logger.info(`purgeStaleOrders: deleted ${n} from ${name}`);
+    for (const business of await businessRefs()) {
+      for (const name of ORDER_COLLECTIONS) {
+        const q = business.collection(name).where("createdAt", "<", cutoff);
+        const n = await deleteQueryInBatches(q);
+        total += n;
+        if (n) logger.info(`purgeStaleOrders: deleted ${n} from ${business.id}/${name}`);
+      }
     }
 
     logger.info(`purgeStaleOrders: finished, total deleted ${total}`);
@@ -95,9 +102,12 @@ export const purgeStalePrintQueue = onSchedule(
     timeoutSeconds: 540,
   },
   async () => {
-    const n = await deleteEntireCollectionGroupInBatches(PRINT_QUEUE_COLLECTION);
+    let total = 0;
+    for (const business of await businessRefs()) {
+      total += await deleteEntireCollectionInBatches(business.collection(PRINT_QUEUE_COLLECTION));
+    }
     logger.info(
-      `purgeStalePrintQueue: deleted ${n} docs from ${PRINT_QUEUE_COLLECTION} (full wipe)`,
+      `purgeStalePrintQueue: deleted ${total} docs from ${PRINT_QUEUE_COLLECTION} (full wipe)`,
     );
   },
 );
