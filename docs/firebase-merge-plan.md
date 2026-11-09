@@ -11,7 +11,90 @@ Status (2026-11-08):
       `orders` read directly (`onlineOrderMapper.ts`), rewards device login + second Firebase app
       removed, the old `demo` named database and demo-email switch removed, purge functions use
       collection groups, functions `codebase: "pos"`. Type-check and lint pass.
-      Next: rewards functions, KDS, Orders app, pos-admin, print servers, website, website-admin.
+      **Rewards done** on branch `firebase-merge` in `asian-le-rewards` (staged, not committed):
+      functions take the business from the staff claim (`requireStaff`), all paths under
+      `businesses/{id}`, `deleteAccount` removes memberships in every business, codebase
+      `rewards`, local `firestore.rules` + `set-pos-role.mjs` removed; app reads
+      `EXPO_PUBLIC_BUSINESS_ID` (claim overrides it), `appConfig/rewardsVersion`.
+      `npm --prefix functions run test`: 27 emulator checks pass (incl. welcome bonus).
+      Rewards committed (`601b6b1`).
+      **KDS done** on branch `firebase-merge` in `AsianLeKDS` (staged, not committed; your
+      `package.json` edits left out): paths via `bizCol` / `bizDoc`, staff/admin claim check
+      at login and on restore, business saved for offline restarts, `demo` database removed.
+      Live composite indexes (`status` + `createdAt` on dine-in / take-out orders) copied into
+      `asian-le-firebase/firestore.indexes.json` (`5a3a47a`); `asianlewebsite` had none.
+      KDS committed (`721547a`).
+      **Orders app done** on branch `firebase-merge` in `asian-le-orders` (staged, not
+      committed): paths via `bizCol` / `bizDoc`, website menu as `web*`, print queue →
+      `onlinePrintQueue`, `appConfig/ordersVersion`, staff/admin claim check (login shows
+      "no access"), rewards device login + second Firebase app + Settings card removed.
+      Orders app committed (`e16abb2`).
+      **pos-admin done** on branch `firebase-merge` (staged, not committed): 51 paths via
+      `bizCol` / `bizDoc`, admin-only sign-in with a business claim, `demo` database and
+      rewards sign-in card / second Firebase app removed, roles are now Staff / Admin.
+      **Security fix:** the user API routes (`createUser` / `updateUser` / `deleteUser`) had
+      no caller check — anyone with the URL could create an admin, change any password or
+      delete users. Now they verify the admin's ID token and take the business from it
+      (23 emulator checks pass). **This hole is live on `main` today** — see "Found during Phase 3".
+      **Print servers done** on branch `firebase-merge` in `print-server` and
+      `print-server-orders` (staged, not committed): every path via `biz(name)` →
+      `businesses/{CONFIG.BUSINESS_ID}/…`; `print-server-orders` reads `onlinePrintQueue`; both
+      refuse to start while `BUSINESS_ID` is empty. At switch-over: fill `BUSINESS_ID` in each
+      `config.js`, and replace `print-server-orders/admin-sdk.json` with an `asianlepos` key.
+      Print servers committed (`323b37e`, `eb76445`).
+      **Website done** on branch `firebase-merge` (staged): paths via `bizCol` / `bizDoc`
+      (client + server components) and `adminBizCol` (Admin SDK), menu as `web*`,
+      `NEXT_PUBLIC_BUSINESS_ID` required; rewards sign-in uses the site's own Firebase
+      connection, member balance read with the Admin SDK (no more REST call to another project).
+      **website-admin done** on branch `firebase-merge` (staged): paths via `bizCol` / `bizDoc`
+      (menu names translated to `web*` inside the helper), admin-only sign-in (it let any
+      signed-in account in before), images upload to `businesses/{id}/<folder>/…`; functions
+      codebase `website`, triggers on `businesses/{businessId}/orders/{orderId}`, confirm-call
+      task carries `businessId`, `purgeStaleWebOrders` (collection group), mirror + backfill
+      deleted, local `firestore.rules` removed.
+      **Phase 3 complete.** Website `98c20b8`, website-admin `e310d3c`.
+- [x] `copy-data` + `create-business` scripts in `asian-le-firebase` (staged, not committed):
+      copies POS top-level + website data into `businesses/{id}/…` (website menu → `web*`,
+      `users` roles → staff/admin), copies website images to `asianlepos` Storage under
+      `businesses/{id}/…` and rewrites the URLs, splits `appConfig/version`; skips print queues,
+      the old mirror and the call log; reports any collection it doesn't know; `--dry-run`.
+      `npm run test:copy`: 16 emulator checks pass.
+- [x] **Staff can't use rewards with their work login** (staged, not committed): rules refuse
+      member / phone sign-up for any account with a `role` claim (41 rules tests, proven to
+      fail without the check); the rewards app and the website's checkout sign-in sign staff
+      accounts out with "This is a staff account…"; the website server ignores staff tokens.
+      "No role = customer" — no `customer` claim needed. Staff use a personal email for rewards.
+- [~] Phase 4 / 5 (2026-11-08) — changed to copy straight into the real business (old data untouched):
+  - [x] Live rules saved by the user (console copy).
+  - [x] Deployed to `asianlepos`: Firestore rules + indexes, Storage rules (Storage set up by
+        the user), rewards functions (codebase `rewards`: lookupMember, earnPoints, redeemPoints,
+        reverseOrder, deleteAccount). Old POS functions + `ssrapp` untouched.
+        **From here the old POS / KDS / pos-admin builds can't read or write** (old paths blocked).
+  - [x] Business **Asian Le = `ASQxXxfSedn4x1mdNCa2`** created.
+  - [x] `copy-data` run live: every collection count matches (customers 3257, POS menu 172,
+        website menu 133, tables 15, users 9, …), 113 website images copied to `asianlepos`
+        Storage, 0 URLs left on the old bucket, old data still in place.
+  - [x] Staff claims set: `admin@asianle.ca` → admin; emily, lily, longbui, maria, nataliia,
+        teresa, vanphan → staff (all `businessId: ASQxXxfSedn4x1mdNCa2`). `demo@asianle.ca`
+        left alone (old `role: admin` claim, no business → no access under the new rules).
+  - [x] Manual test (2026-11-09), every app run locally on its `firebase-merge` branch against
+        the live business: POS, KDS, pos-admin, Orders app, website, website-admin, rewards.
+        All passed. Found + fixed: Auth "Enable create (sign-up)" was off in `asianlepos`
+        (`auth/admin-restricted-operation` on customer sign-up; user turned on create + delete).
+        Orders app made admin only (staff refused). Test orders / customer / member removed
+        and changed docs restored from the old data afterwards. `demo@asianle.ca` users entry
+        removed; the user deletes the account in the console.
+        Local `.env` files of the Orders app, website, website-admin and rewards now point at
+        `asianlepos` (old ones kept as `.env.*-old.local`, git-ignored). The rewards app's
+        native Google client IDs are still the old project's: replace before native builds.
+  - [ ] Demo business (`seed-demo`). Orders app review now needs a Demo **admin** account.
+  - [ ] Not yet deployed: POS functions (delete old `purgeStale*` first), website functions
+        (needs Twilio/Resend secrets in `asianlepos`).
+  - Keys: `D:\Projects\Key\pos.json` (asianlepos), `D:\Projects\Key\website.json` (asianlewebsite).
+
+**Before the first rules deploy:** save the current live rules of `asianlepos` (they only exist
+in the console — Firestore → Rules → copy) and `asianlewebsite`, so rolling back is possible.
+- Note: nothing cleans `onlinePrintQueue` (same as the website's `printQueue` today).
 - [ ] Phase 4 onward.
 
 **Found during Phase 3:**
@@ -23,6 +106,13 @@ Status (2026-11-08):
   delete the old ones first (`firebase functions:delete purgeStaleOrders purgeStalePrintQueue`),
   then deploy. Same for the rewards functions moving in from `asian-le-rewards`.
 - Old unscoped cache keys (e.g. `@menu_cache`) stay on devices unused; harmless.
+- **pos-admin user API had no auth check (live on `main`).** Fixed on `firebase-merge`
+  (`9834c28`). Hotfix for the current layout on branch `fix-user-api-auth` (`41355ef`, off
+  `main`, 13 emulator checks) — merge to `main` and push to deploy. When `main` is later
+  merged into `firebase-merge`, keep the `firebase-merge` version of the `api/users` files.
+- **Old roles:** pos-admin used `cashier` / `manager` / `admin` claims. The new apps and rules
+  only accept `staff` / `admin`, so at switch-over re-set every staff account with
+  `set-claims <email> <asianLeId> staff` (and `admin` for the owner).
 
 ## Goal
 
@@ -90,7 +180,7 @@ Notes:
 ```
 
 Each staff account belongs to one business. To work in Demo, use a separate account.
-Accounts: 1 admin (owner); everyone else is staff (POS, KDS, Orders app) or a customer.
+Accounts: 1 admin (owner); everyone else is staff (POS, KDS) or a customer. The Orders app is admin only.
 
 **Business ID on the device:** after sign-in, read `businessId` from the claim and save it in
 AsyncStorage (`localStorage` on web), so the app can start and load the right caches before auth
@@ -99,8 +189,8 @@ Clear it on logout. The saved value is only a convenience; the rules enforce acc
 
 | App | Who can sign in | Which business |
 |---|---|---|
-| POS, KDS, Orders app | `staff`, `admin` | from the claim |
-| pos-admin, website-admin | `admin` | from the claim |
+| POS, KDS | `staff`, `admin` | from the claim |
+| Orders app, pos-admin, website-admin | `admin` | from the claim |
 | Rewards app, website customer sign-in | anyone | from env (`…_BUSINESS_ID`), or a `businessId` claim on the account if set (used for the review account) |
 | Print servers | service account | `businessId` in their config |
 
@@ -152,7 +242,7 @@ The Admin SDK skips rules, so:
 ## Demo business (App Store review)
 
 - `businesses/{demoId}` with a sample menu, tables and a few customers.
-- Reviewer staff account: `{ businessId: demoId, role: "staff" }` for POS / Orders app review.
+- Reviewer staff account: `{ businessId: demoId, role: "staff" }` for POS review. (The Orders app is admin only, so its review needs an admin of the Demo business.)
 - Reviewer customer account: `businesses/{demoId}/members/{uid}` with a very large balance
   (e.g. 100,000 points), plus a `businessId: demoId` claim so the rewards app opens the Demo
   business. The reviewer shows its QR in the rewards app, or the Demo POS finds it by phone.
@@ -204,6 +294,10 @@ website-admin 32, Orders app 20, website 19, rewards 5).
 - Confirm Blaze is on and set a budget alert.
 - Recreate the Twilio and Resend secrets (`firebase functions:secrets:set`).
 - Auth: enable Google sign-in. Add authorized domains (website, rewards web, Orders web).
+- Auth → Settings → User actions: turn ON "Enable create (sign-up)" and "Enable delete".
+  asianlepos had both off (POS only had staff made by pos-admin), which blocks every customer
+  sign-up with `auth/admin-restricted-operation`. Safe to turn on: new accounts have no role,
+  so the staff and admin apps refuse them and the rules only let them create their own member.
 - Hosting: one project can host many sites (up to 36), each with its own URL and custom domain.
   Add sites for rewards web and Orders web next to the POS web site; pos-admin keeps its App
   Hosting backend. Custom domains get re-added later at cutover.
