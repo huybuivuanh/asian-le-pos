@@ -89,7 +89,7 @@ Status (2026-11-08):
         native Google client IDs are still the old project's: replace before native builds.
   - [x] Demo business `3RO5BeP6IAwQNKbQIqLG` seeded (2026-11-09): menus, hours, settings (not paused),
         tables. Review accounts `review@asianle.ca` (Demo admin) and `review-customer@asianle.ca`
-        (100,000 points, phone 6045550100).
+        (100,000 points, phone 0123456789). Both passwords `REVIEW123!` (reset 2026-11-09).
   - [ ] Not yet deployed: POS functions (delete old `purgeStale*` first), website functions
         (needs Twilio/Resend secrets in `asianlepos`).
   - Keys: `D:\Projects\Key\pos.json` (asianlepos), `D:\Projects\Key\website.json` (asianlewebsite).
