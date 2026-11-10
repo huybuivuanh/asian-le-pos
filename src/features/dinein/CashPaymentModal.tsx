@@ -1,5 +1,7 @@
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { openCashDrawer } from "@/services/printService";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import FullScreenLoadingOverlay from "@/ui/FullScreenLoadingOverlay";
+import React, { useMemo, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -29,15 +31,11 @@ export default function CashPaymentModal({ onClose, orderTotal }: Props) {
 
   const cashDifference = cashReceived - orderTotal;
 
-  // Pop the drawer as soon as a cash payment starts. Fire-and-forget: the
-  // drawer can always be opened by hand, so a failure shouldn't block the modal.
-  const requestDrawer = useCallback(() => {
-    openCashDrawer().catch((e) => console.warn("Failed to open cash drawer", e));
-  }, []);
-
-  useEffect(() => {
-    requestDrawer();
-  }, [requestDrawer]);
+  // Only on the "Open drawer" button, not when the modal opens.
+  const { execute: requestDrawer, loading: openingDrawer } = useAsyncAction(
+    openCashDrawer,
+    { errorTitle: "Couldn't open the cash drawer" },
+  );
 
   const handleClose = () => {
     Keyboard.dismiss();
@@ -134,7 +132,8 @@ export default function CashPaymentModal({ onClose, orderTotal }: Props) {
 
           <TouchableOpacity
             className="mb-2 rounded-xl border border-gray-300 py-3"
-            onPress={requestDrawer}
+            onPress={() => requestDrawer()}
+            disabled={openingDrawer}
             activeOpacity={0.85}
           >
             <Text className="text-center text-base font-semibold text-gray-800">
@@ -154,6 +153,12 @@ export default function CashPaymentModal({ onClose, orderTotal }: Props) {
         </View>
         </View>
       </KeyboardAvoidingView>
+      {/* Inside the cash modal so it shows on top of it. */}
+      <FullScreenLoadingOverlay
+        visible={openingDrawer}
+        title="Opening cash drawer…"
+        subtitle=""
+      />
     </Modal>
   );
 }
