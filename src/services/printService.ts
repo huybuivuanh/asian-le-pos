@@ -6,17 +6,15 @@ import { setDoc, Timestamp } from "firebase/firestore";
 export async function submitToPrintQueue(order: OrderDraft): Promise<void> {
   if (!order.id) throw new Error("Order ID is required to print.");
 
-  await setDoc(
-    bizDoc("printQueue", order.id),
-    {
-      ...order,
-      orderItems: order.orderItems ?? [],
-      id: order.id,
-      printed: false,
-      createdAt: Timestamp.now(),
-    } as Record<string, unknown>,
-    { merge: true },
-  );
+  // Replace the whole doc (no merge): a reprint must not keep fields the order no longer
+  // has, e.g. taxBreakDown.discount after a discount is removed.
+  await setDoc(bizDoc("printQueue", order.id), {
+    ...order,
+    orderItems: order.orderItems ?? [],
+    id: order.id,
+    printed: false,
+    createdAt: Timestamp.now(),
+  } as Record<string, unknown>);
 }
 
 export async function submitSelectedItemsToPrintQueue(
