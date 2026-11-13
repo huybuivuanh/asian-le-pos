@@ -11,7 +11,7 @@ Built with **Expo** (React Native) and **Firebase** (Firestore + Auth + Cloud Fu
 - **Frontend:** Expo SDK 58, React 19.3, React Native 0.88, Expo Router (file-based routing)
 - **Styling:** NativeWind 4.x (Tailwind for React Native)
 - **State:** Zustand 5
-- **Backend:** Firebase 12 — Firestore, Auth, Cloud Functions (codebase `pos`)
+- **Backend:** Firebase 12 — Firestore, Auth, Cloud Functions (the POS purge jobs, codebase `pos`, live in the pos-admin repo)
 - **Crash reports:** Sentry
 - **Language:** TypeScript
 
@@ -32,7 +32,6 @@ Built with **Expo** (React Native) and **Firebase** (Firestore + Auth + Cloud Fu
 
    ```bash
    npm install
-   cd functions && npm install && cd ..
    ```
 
 2. **Configure environment**
@@ -70,14 +69,6 @@ Built with **Expo** (React Native) and **Firebase** (Firestore + Auth + Cloud Fu
 | `npm run web`     | Run web build           |
 | `npm run lint`    | Run ESLint              |
 
-### Firebase Cloud Functions (`/functions`)
-
-| Command          | Description                              |
-| ---------------- | ---------------------------------------- |
-| `npm run build`  | Compile TypeScript → `lib/index.js`      |
-| `npm run serve`  | Build + start Firebase emulators locally |
-| `npm run deploy` | Deploy functions to Firebase             |
-
 ### Web hosting
 
 The web build is a single-page export to `dist/` (`npx expo export --platform web`), deployed
@@ -111,8 +102,6 @@ src/
   ui/                   # Shared UI components (Header, overlays, banners)
   providers/            # AuthProvider
   utils/                # Helpers, formatters, cache utilities
-functions/
-  src/index.ts          # Cloud Functions (scheduled purge jobs)
 docs/
   customer-display-kiosk-setup.md   # Till PC setup for the customer display
 ```
@@ -174,7 +163,7 @@ docs/
 - **Background reset** — after 5 minutes in the background, navigation resets to home and network reconnects
 - **Offline banner** — visible indicator when network is unavailable
 - **Force update** — `appConfig/posVersion` can require a newer app version
-- **Auto data purge** — orders older than 30 days are automatically deleted by Cloud Functions
+- **Auto data purge** — orders older than 30 days are automatically deleted by Cloud Functions (deployed from the pos-admin repo)
 
 ### Menu
 - **Versioned menu cache** — menu data cached in AsyncStorage, invalidated only when the menu version changes; loads in parallel with auth so there's no flash on login

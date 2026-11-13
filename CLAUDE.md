@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Project Is
 
-**Asian Le POS** — a cross-platform (iOS, Android, Web) Point-of-Sale system for a restaurant, built with Expo. It handles dine-in table orders, take-out orders, menu management, kitchen routing, and payment tracking. Backend is entirely Firebase (Firestore + Auth + Cloud Functions).
+**Asian Le POS** — a cross-platform (iOS, Android, Web) Point-of-Sale system for a restaurant, built with Expo. It handles dine-in table orders, take-out orders, menu management, kitchen routing, and payment tracking. Backend is entirely Firebase (Firestore + Auth + Cloud Functions). The POS's scheduled Cloud Functions live in the pos-admin repo.
 
 ## Commands
 
@@ -17,15 +17,8 @@ npm run web             # Run web build
 npm run lint            # Run ESLint
 ```
 
-### Firebase Cloud Functions (`/functions`)
-```bash
-npm run build           # Compile TypeScript → lib/index.js
-npm run serve           # Build + start Firebase emulators locally
-npm run deploy          # Deploy functions to Firebase
-```
-
 ### Firebase Hosting
-Deploy triggers `npm --prefix functions run build` automatically before upload. The web export goes to `dist/`.
+`firebase deploy` uploads the web export in `dist/` (hosting only — this repo has no functions).
 
 ## Architecture
 
@@ -199,10 +192,8 @@ Security rules, indexes and the `set-claims` / `seed-demo` scripts live in the s
 
 Rewards actions (`lookupMember`, `earnPoints`, `redeemPoints`, `reverseOrder`) are Cloud Functions in the `asian-le-rewards` repo, called with the staff member's own login; they take the business from the `businessId` claim.
 
-### Cloud Functions (`functions/src/index.ts`, codebase `pos`)
-Two scheduled functions, covering every business via collection group queries:
-- `purgeStaleOrders` — Daily at 4 AM UTC: deletes `dineInOrders` and `takeOutOrders` older than ~30 days in batches of 500 (website `orders` are purged by the website's own function)
-- `purgeStalePrintQueue` — Daily at midnight America/Regina: clears every business's `printQueue`
+### Cloud Functions (moved to pos-admin)
+The scheduled purge jobs (`purgeStaleOrders` — dine-in/take-out orders older than ~30 days; `purgeStalePrintQueue` — daily wipe of every `printQueue`) are in `D:\Projects\asian-le-pos-admin\functions` (codebase `pos`) and are deployed from there. Don't add a `functions` block back to this repo's `firebase.json`: deploying codebase `pos` from here would overwrite or delete them.
 
 ### Auth
 - **Web:** `getAuth()` (default session storage)
