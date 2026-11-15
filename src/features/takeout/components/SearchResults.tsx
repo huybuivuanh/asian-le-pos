@@ -1,3 +1,4 @@
+import { menuItemLabel, searchMenuItems } from "@/domain/menu/menuItemNumber";
 import { FlashList } from "@shopify/flash-list";
 import { Text, TouchableOpacity, View } from "react-native";
 
@@ -9,9 +10,7 @@ type Props = {
 
 export default function SearchResults({ items, query, onSelectItem }: Props) {
   const q = query.trim();
-  const displayItems = q
-    ? items.filter((item) => item.name.toLowerCase().includes(q.toLowerCase()))
-    : items;
+  const displayItems = searchMenuItems(items, q);
 
   if (!items.length) {
     return (
@@ -39,7 +38,7 @@ export default function SearchResults({ items, query, onSelectItem }: Props) {
             onPress={() => onSelectItem(item)}
           >
             <Text className="text-lg font-medium text-gray-800">
-              {item.name}
+              {menuItemLabel(item)}
             </Text>
             <Text className="text-gray-600">${item.price.toFixed(2)}</Text>
           </TouchableOpacity>

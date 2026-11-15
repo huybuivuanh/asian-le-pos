@@ -3,6 +3,7 @@ import {
   ItemChangeEditor,
   SpecialFlagsSelector,
 } from "@/features/order";
+import { menuItemLabel } from "@/domain/menu/menuItemNumber";
 import { ItemOptionGroupSelector } from "@/features/order/components/ItemOptionGroupSelector";
 import { useItemCustomizer } from "@/features/order/hooks/useItemCustomizer";
 import SafeAreaViewWrapper from "@/layout/SafeAreaViewWrapper";
@@ -108,7 +109,7 @@ export default function Item() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <SafeAreaViewWrapper className="flex-1 bg-white">
-        <Header title={item.name} onBack={() => router.back()} />
+        <Header title={menuItemLabel(item)} onBack={() => router.back()} />
 
         <ScrollView
           keyboardShouldPersistTaps="always"
