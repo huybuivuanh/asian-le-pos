@@ -3,7 +3,7 @@ import { firebase } from "@/lib/firebaseConfig";
 import { DiscountType, OrderStatus, OrderType, TableStatus } from "@/types/enums";
 import { kitchenTypeSortRank } from "@/features/order/orderItemSections";
 import { ungroupOrderItems } from "@/utils/groupOrderItems";
-import { redemptionDiscountInputs } from "@/domain/rewards/rewardsRules";
+import { activeRedemption } from "@/domain/rewards/rewardsRules";
 import { calculateTaxBreakdown, orderItemsSubtotal } from "@/utils/helpers";
 import { normalizeOrderItemTextForDb } from "@/utils/normalizeOrderItemText";
 import { runTransaction, setDoc, Timestamp, writeBatch } from "firebase/firestore";
@@ -97,6 +97,7 @@ export async function submitOrder(
           orderItemsSubtotal(mergedItems),
           existingDiscount?.discountType ?? DiscountType.None,
           existingDiscount?.discountValue ?? 0,
+          activeRedemption(existingOrder.loyalty),
         );
         tx.update(existingOrderRef, {
           orderItems: mergedItems,
@@ -117,9 +118,15 @@ export async function updateOrder(order: OrderDraft): Promise<void> {
   if (!order.id) throw new Error("Cannot update order without ID.");
 
   const firestoreCollection = order.orderType === OrderType.DineIn ? "dineInOrders" : "takeOutOrders";
-  // A rewards redemption is the order's discount, whatever the cart's discount says.
-  const { type, value } = redemptionDiscountInputs(order.loyalty) ?? discountInputs(order);
-  const taxBreakDown = calculateTaxBreakdown(orderItemsSubtotal(order.orderItems), type, value);
+  // The redemption comes from the order's loyalty record (points already spent), on top
+  // of whatever staff discount the cart has.
+  const { type, value } = discountInputs(order);
+  const taxBreakDown = calculateTaxBreakdown(
+    orderItemsSubtotal(order.orderItems),
+    type,
+    value,
+    activeRedemption(order.loyalty),
+  );
 
   const rawItems = ungroupOrderItems(order.orderItems ?? []).sort((a, b) => {
     const ra = kitchenTypeSortRank(a.kitchenType);

@@ -159,6 +159,7 @@ Pure business logic with no side effects:
 - Orders have a `groupItems` boolean controlling whether items of the same type are collapsed (dine-in) or shown per-item (take-out default)
 - Split billing: individual items have a `paid: boolean` field
 - Discounts apply before tax (type: `Amount` or `Percent`)
+- Rewards redemptions stack with the staff discount: `taxBreakDown.discount` (staff, off the subtotal) → `taxBreakDown.rewards` (`{ points, amount }`, off what's left, capped at $0) → `taxBreakDown.taxableSubtotal` (always written; tax and points are calculated on it). The redemption's source is `order.loyalty` (`activeRedemption()`); every recalculation passes it in, and a reverse drops only `rewards`
 - Tax rates are hardcoded: **PST 6%, GST 5%** (BC, Canada)
 
 ### Enums (`src/types/enums.ts`)

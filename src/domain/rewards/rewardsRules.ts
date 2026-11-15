@@ -1,4 +1,5 @@
-import { DiscountType, OrderStatus } from "@/types/enums";
+import { amountAfterDiscount } from "@/domain/order/orderCalculations";
+import { OrderStatus } from "@/types/enums";
 
 // Rewards rules (pure). The server functions are the source of truth;
 // these are for showing staff what will happen before they press a button.
@@ -16,9 +17,9 @@ export const MAX_REDEEM_STEPS = 20;
 export const pointsForAmount = (amount: number): number =>
   amount > 0 ? Math.floor(amount * POINTS_PER_DOLLAR) : 0;
 
-/** Pre-tax amount the order earns on: subtotal after any discount/redemption. */
+/** Pre-tax amount the order earns on: subtotal after any discount and redemption. */
 export const orderEarnableAmount = (order: Pick<Order, "taxBreakDown">): number =>
-  order.taxBreakDown?.discount?.taxableSubtotal ?? order.taxBreakDown?.subTotal ?? 0;
+  order.taxBreakDown?.taxableSubtotal ?? 0;
 
 // The Rewards server allows one earn, redeem and reverse per order, so once an
 // order's points are reversed, rewards can't be used on it again (even if the
@@ -72,10 +73,8 @@ export const redeemBlockedReason = (
   if (order.loyalty?.reversedAt) return REVERSED_MESSAGE;
   if (order.loyalty?.pointsRedeemed) return "Points were already redeemed on this order.";
   if (order.loyalty?.pointsEarned != null) return "Points were already collected — redeem before collecting.";
-  const d = order.taxBreakDown?.discount;
-  if (d && d.discountType !== DiscountType.None) return "This order already has a discount.";
   if (memberPoints < POINTS_PER_REDEEM_STEP) return `Needs at least ${POINTS_PER_REDEEM_STEP} points.`;
-  if ((order.taxBreakDown?.subTotal ?? 0) < DOLLARS_PER_REDEEM_STEP) return "Order is too small to redeem.";
+  if (amountAfterDiscount(order.taxBreakDown) < DOLLARS_PER_REDEEM_STEP) return "Order is too small to redeem.";
   return null;
 };
 
@@ -94,8 +93,8 @@ export const collectBlockedReason = (
 };
 
 /**
- * Most $5 steps the member can redeem on this order: limited by their
- * balance and by the order's subtotal (a redemption never goes below $0).
+ * Most $5 steps the member can redeem on this order: limited by their balance and by
+ * what's left after the staff discount (`amountAfterDiscount`; never goes below $0).
  */
 export const maxRedeemSteps = (balance: number, subtotal: number): number =>
   Math.max(
@@ -108,12 +107,12 @@ export const maxRedeemSteps = (balance: number, subtotal: number): number =>
   );
 
 /**
- * A rewards redemption fixes the order's discount: Amount = redeemed dollars.
- * Returns the discount inputs to force when saving, or null if the order has no redemption.
+ * The order's redemption to price in (staff discount first, then this), or null if it
+ * has none or it was reversed. `amount` is the redeemed dollars.
  */
-export const redemptionDiscountInputs = (
+export const activeRedemption = (
   loyalty: OrderLoyalty | undefined | null,
-): { type: DiscountType; value: number } | null =>
+): RewardsRedemption | null =>
   hasActiveRedemption(loyalty)
-    ? { type: DiscountType.Amount, value: loyalty!.redeemedAmount! }
+    ? { points: loyalty!.pointsRedeemed ?? 0, amount: loyalty!.redeemedAmount! }
     : null;

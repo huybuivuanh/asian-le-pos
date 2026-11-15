@@ -8,8 +8,8 @@ import {
   pointsForAmount,
   POINTS_PER_REDEEM_STEP,
   redeemBlockedReason,
-  hasActiveRedemption,
 } from "@/domain/rewards/rewardsRules";
+import { amountAfterDiscount } from "@/domain/order/orderCalculations";
 import SafeAreaViewWrapper from "@/layout/SafeAreaViewWrapper";
 import {
   applyRedemptionToOrder,
@@ -139,7 +139,7 @@ export default function RewardsMemberScreen() {
   const collectPoints = pointsForAmount(earnable);
 
   const maxSteps = useMemo(
-    () => (order && member ? maxRedeemSteps(availablePoints, order.taxBreakDown?.subTotal ?? 0) : 0),
+    () => (order && member ? maxRedeemSteps(availablePoints, amountAfterDiscount(order.taxBreakDown)) : 0),
     [order, member, availablePoints],
   );
   const clampedSteps = Math.min(Math.max(1, steps), Math.max(1, maxSteps));
@@ -262,8 +262,14 @@ Balance: ${left} pts.`,
               <Row label="Subtotal" value={`$${(order.taxBreakDown?.subTotal ?? 0).toFixed(2)}`} />
               {order.taxBreakDown?.discount ? (
                 <Row
-                  label={hasActiveRedemption(order.loyalty) ? "Rewards discount" : "Discount"}
+                  label="Discount"
                   value={`−$${order.taxBreakDown.discount.discountAmount.toFixed(2)}`}
+                />
+              ) : null}
+              {order.taxBreakDown?.rewards ? (
+                <Row
+                  label={`Rewards (${order.taxBreakDown.rewards.points} pts)`}
+                  value={`−$${order.taxBreakDown.rewards.amount.toFixed(2)}`}
                 />
               ) : null}
               <Row label="Total" value={`$${(order.taxBreakDown?.total ?? 0).toFixed(2)}`} bold />

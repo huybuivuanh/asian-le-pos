@@ -271,6 +271,17 @@ export default function CustomerDisplayScreen() {
               </View>
             )}
 
+          {taxBreakDown.rewards && (
+            <View className="flex-row justify-between">
+              <Text className="text-xl text-stone-300">
+                {`Rewards (${taxBreakDown.rewards.points} pts)`}
+              </Text>
+              <Text className="text-xl text-stone-300">
+                -${taxBreakDown.rewards.amount.toFixed(2)}
+              </Text>
+            </View>
+          )}
+
           <View className="flex-row justify-between">
             <Text className="text-xl text-stone-300">PST (6%)</Text>
             <Text className="text-xl text-stone-300">

@@ -15,7 +15,7 @@ import { getDoc, runTransaction, serverTimestamp, updateDoc } from "firebase/fir
 export const orderCollection = (orderType: OrderType) =>
   orderType === OrderType.DineIn ? "dineInOrders" : "takeOutOrders";
 
-/** Applies a redemption as the order's Amount discount and links the member. */
+/** Applies a redemption on top of the order's staff discount and links the member. */
 export async function applyRedemptionToOrder(
   orderType: OrderType,
   orderId: string,
@@ -31,18 +31,13 @@ export async function applyRedemptionToOrder(
     // Already saved (retry after a slow response): nothing to do.
     if (order.loyalty?.pointsRedeemed) return;
 
-    const existing = order.taxBreakDown?.discount;
-    if (existing && existing.discountType !== DiscountType.None) {
-      throw new Error(
-        "A discount was added to this order meanwhile. Points were redeemed but not applied — remove the discount and press Redeem again.",
-      );
-    }
-
+    const d = order.taxBreakDown?.discount;
     tx.update(ref, {
       taxBreakDown: calculateTaxBreakdown(
         orderItemsSubtotal(order.orderItems),
-        DiscountType.Amount,
-        result.discountAmount,
+        d?.discountType ?? DiscountType.None,
+        d?.discountValue ?? 0,
+        { points: result.pointsRedeemed, amount: result.discountAmount },
       ),
       "loyalty.memberId": member.memberId,
       "loyalty.memberName": member.name,
@@ -111,21 +106,18 @@ export async function reverseCancelledOrderRewards(
         const snap = await tx.get(ref);
         if (!snap.exists()) return;
         const order = snap.data() as AnyOrder;
-        // The redeemed points went back to the member, so the rewards discount
-        // goes too — otherwise un-cancelling would keep a free discount.
-        const d = order.taxBreakDown?.discount;
-        const isRedemptionDiscount =
-          Boolean(loyalty?.redeemedAmount) &&
-          d?.discountType === DiscountType.Amount &&
-          d.discountValue === loyalty?.redeemedAmount;
+        // The redeemed points went back to the member, so the rewards come off the
+        // price too (otherwise un-cancelling would keep them free). The staff discount stays.
+        const tb = order.taxBreakDown;
+        const d = tb?.discount;
         tx.update(ref, {
           ...reversedFields,
-          ...(isRedemptionDiscount
+          ...(tb?.rewards
             ? {
                 taxBreakDown: calculateTaxBreakdown(
                   orderItemsSubtotal(order.orderItems),
-                  DiscountType.None,
-                  0,
+                  d?.discountType ?? DiscountType.None,
+                  d?.discountValue ?? 0,
                 ),
               }
             : {}),

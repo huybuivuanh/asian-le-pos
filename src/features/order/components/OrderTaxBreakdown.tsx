@@ -64,7 +64,6 @@ export default function OrderTaxBreakdown({
 
           {taxBreakDown.discount &&
             taxBreakDown.discount.discountAmount > 0 && (
-              <View>
                 <View className="flex-row justify-between mb-1">
                   {taxBreakDown.discount.discountType ===
                   DiscountType.Percent ? (
@@ -80,16 +79,27 @@ export default function OrderTaxBreakdown({
                     -${taxBreakDown.discount.discountAmount.toFixed(2)}
                   </Text>
                 </View>
-                <View className="flex-row justify-between mb-1">
-                  <Text className="text-base text-gray-700">
-                    Taxable Subtotal
-                  </Text>
-                  <Text className="text-base text-gray-700">
-                    ${taxBreakDown.discount.taxableSubtotal.toFixed(2)}
-                  </Text>
-                </View>
-              </View>
             )}
+
+          {taxBreakDown.rewards && (
+            <View className="flex-row justify-between mb-1">
+              <Text className="text-base text-gray-600">
+                {`Rewards (${taxBreakDown.rewards.points} pts)`}
+              </Text>
+              <Text className="text-base text-gray-700">
+                -${taxBreakDown.rewards.amount.toFixed(2)}
+              </Text>
+            </View>
+          )}
+
+          {taxBreakDown.taxableSubtotal < taxBreakDown.subTotal && (
+            <View className="flex-row justify-between mb-1">
+              <Text className="text-base text-gray-700">Taxable Subtotal</Text>
+              <Text className="text-base text-gray-700">
+                ${taxBreakDown.taxableSubtotal.toFixed(2)}
+              </Text>
+            </View>
+          )}
 
           <View className="flex-row justify-between mb-1">
             <Text className="text-base text-gray-700">PST (6%)</Text>

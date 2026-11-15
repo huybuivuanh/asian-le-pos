@@ -1,3 +1,4 @@
+import { activeRedemption } from "@/domain/rewards/rewardsRules";
 import { DiscountType, OrderType, TakeOutFulfillmentKind } from "@/types/enums";
 import { calculateTaxBreakdown, orderItemsSubtotal } from "@/utils/helpers";
 import { create } from "zustand";
@@ -38,7 +39,10 @@ function withRecalculatedTax(order: OrderDraft): OrderDraft {
   const { type, value } = discountInputsFromOrder(order);
   return {
     ...order,
-    taxBreakDown: subtotal > 0 ? calculateTaxBreakdown(subtotal, type, value) : undefined,
+    taxBreakDown:
+      subtotal > 0
+        ? calculateTaxBreakdown(subtotal, type, value, activeRedemption(order.loyalty))
+        : undefined,
   };
 }
 

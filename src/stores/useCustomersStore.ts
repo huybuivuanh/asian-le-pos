@@ -1,3 +1,4 @@
+import { activeRedemption } from "@/domain/rewards/rewardsRules";
 import { bizCol, bizDoc, bizKey } from "@/lib/business";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -60,22 +61,23 @@ type CustomersState = {
   syncTakeOutCustomerFromCart: (
     order: Pick<
       OrderDraft,
-      "customerName" | "phoneNumber" | "orderItems" | "taxBreakDown"
+      "customerName" | "phoneNumber" | "orderItems" | "taxBreakDown" | "loyalty"
     >,
     recordOrder?: boolean,
   ) => Promise<void>;
   clearData: () => void;
 };
 
-/** Grand total (incl. tax, after discount) for a cart draft — mirrors orderService. */
+/** Grand total (incl. tax, after discount and rewards) for a cart draft — mirrors orderService. */
 function draftOrderTotal(
-  order: Pick<OrderDraft, "orderItems" | "taxBreakDown">,
+  order: Pick<OrderDraft, "orderItems" | "taxBreakDown" | "loyalty">,
 ): number {
   const d = order.taxBreakDown?.discount;
   return calculateTaxBreakdown(
     orderItemsSubtotal(order.orderItems),
     d?.discountType ?? DiscountType.None,
     d?.discountValue ?? 0,
+    activeRedemption(order.loyalty),
   ).total;
 }
 

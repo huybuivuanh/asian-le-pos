@@ -6,7 +6,7 @@ import {
   OrderType,
   TableStatus,
 } from "@/types/enums";
-import { redemptionDiscountInputs } from "@/domain/rewards/rewardsRules";
+import { activeRedemption } from "@/domain/rewards/rewardsRules";
 import { ungroupOrderItems } from "@/utils/groupOrderItems";
 import { calculateTaxBreakdown, orderItemsSubtotal } from "@/utils/helpers";
 import { normalizeOrderItemTextForDb } from "@/utils/normalizeOrderItemText";
@@ -76,13 +76,13 @@ export async function convertDineInToTakeOut(
     if (tableData.currentOrderId !== orderId)
       throw new Error("This order is no longer on this table.");
 
-    // A rewards redemption stays the order's discount (see redemptionDiscountInputs).
+    // Staff discount from the draft; the redemption stays with the order's loyalty record.
     const d = draft.taxBreakDown?.discount;
-    const locked = redemptionDiscountInputs(data.loyalty as OrderLoyalty | undefined);
     const taxBreakDown = calculateTaxBreakdown(
       orderItemsSubtotal(orderItems),
-      locked?.type ?? d?.discountType ?? DiscountType.None,
-      locked ? locked.value : (d?.discountValue ?? 0),
+      d?.discountType ?? DiscountType.None,
+      d?.discountValue ?? 0,
+      activeRedemption(data.loyalty as OrderLoyalty | undefined),
     );
 
     const cleanItems = orderItems.map((item) => ({
@@ -192,6 +192,7 @@ export async function convertTakeOutToDineIn(
       orderItemsSubtotal(orderItems),
       d?.discountType ?? DiscountType.None,
       d?.discountValue ?? 0,
+      activeRedemption(data.loyalty as OrderLoyalty | undefined),
     );
 
     const cleanItems = ungroupOrderItems(orderItems).map((item) =>

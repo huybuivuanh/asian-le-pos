@@ -6,6 +6,7 @@ import { firebase } from "../lib/firebaseConfig";
 
 // Re-export domain calculations so existing imports keep working
 export {
+  amountAfterDiscount,
   calculateDiscountAmount,
   calculateTaxBreakdown,
   EMPTY_TAX_BREAKDOWN,

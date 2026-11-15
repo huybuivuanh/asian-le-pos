@@ -1,4 +1,4 @@
-import { hasActiveRedemption } from "@/domain/rewards/rewardsRules";
+import { activeRedemption } from "@/domain/rewards/rewardsRules";
 import { useCartStore } from "@/stores/useCartStore";
 import { DiscountType, OrderType } from "@/types/enums";
 import {
@@ -45,10 +45,9 @@ export default function DiscountButtonModalAndSummary() {
   );
 
   const finalTotal = order.taxBreakDown?.total ?? 0;
-
-  // A rewards redemption is the order's discount; it can't be changed here
+  // Rewards come off after the staff discount; they can't be changed here
   // (the points are already spent). Cancelling the order gives them back.
-  const rewardsLocked = hasActiveRedemption(order.loyalty);
+  const rewards = order.taxBreakDown?.rewards;
 
   const [modalVisible, setModalVisible] = useState(false);
   const [draftType, setDraftType] = useState<DiscountType>(committedType);
@@ -83,6 +82,7 @@ export default function DiscountButtonModalAndSummary() {
             sub,
             draftType === DiscountType.None ? DiscountType.None : draftType,
             draftType === DiscountType.None ? 0 : draftValue,
+            activeRedemption(order.loyalty),
           )
         : undefined;
     updateOrder({ taxBreakDown });
@@ -106,24 +106,29 @@ export default function DiscountButtonModalAndSummary() {
           )}
           <TouchableOpacity
             onPress={openModal}
-            disabled={rewardsLocked}
-            className={`px-4 py-2 rounded-md ${rewardsLocked ? "bg-gray-300" : "bg-gray-900"}`}
+            className="px-4 py-2 rounded-md bg-gray-900"
             activeOpacity={0.8}
           >
-            <Text className="text-white font-semibold">
-              {rewardsLocked ? "Discount locked" : "Discount"}
-            </Text>
+            <Text className="text-white font-semibold">Discount</Text>
           </TouchableOpacity>
         </View>
         {committedType !== DiscountType.None && committedDiscountAmount > 0 ? (
           <View className="flex-row justify-between mb-2">
             <Text className="text-gray-600 font-medium">
-              {rewardsLocked
-                ? `Rewards (${order.loyalty?.pointsRedeemed ?? 0} pts)`
-                : `Discount: ${committedType === DiscountType.Percent ? "%" : "$"} ${committedValue.toFixed(2)}`}
+              {`Discount: ${committedType === DiscountType.Percent ? "%" : "$"} ${committedValue.toFixed(2)}`}
             </Text>
             <Text className="text-gray-900 font-bold">
               -${committedDiscountAmount.toFixed(2)}
+            </Text>
+          </View>
+        ) : null}
+        {rewards ? (
+          <View className="flex-row justify-between mb-2">
+            <Text className="text-gray-600 font-medium">
+              {`Rewards (${rewards.points} pts)`}
+            </Text>
+            <Text className="text-gray-900 font-bold">
+              -${rewards.amount.toFixed(2)}
             </Text>
           </View>
         ) : null}

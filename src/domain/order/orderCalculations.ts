@@ -22,22 +22,51 @@ export const calculateDiscountAmount = (
   return 0;
 };
 
-export const EMPTY_TAX_BREAKDOWN: TaxBreakDown = { subTotal: 0, pst: 0, gst: 0, total: 0 };
+export const EMPTY_TAX_BREAKDOWN: TaxBreakDown = {
+  subTotal: 0,
+  taxableSubtotal: 0,
+  pst: 0,
+  gst: 0,
+  total: 0,
+};
 
+/**
+ * Staff discount comes off the subtotal first, then the rewards redemption comes off
+ * what's left (capped so the order never goes below $0). Tax is on what remains.
+ * `rewards.amount` is the redeemed dollars; the result's `rewards.amount` is what was
+ * actually taken off.
+ */
 export const calculateTaxBreakdown = (
   itemsSubtotal: number,
   discountType: DiscountType = DiscountType.None,
   discountValue = 0,
+  rewards?: RewardsRedemption | null,
 ): TaxBreakDown => {
-  if (itemsSubtotal <= 0) return { subTotal: 0, pst: 0, gst: 0, total: 0 };
+  if (itemsSubtotal <= 0) return { ...EMPTY_TAX_BREAKDOWN };
   const discountAmount = calculateDiscountAmount(itemsSubtotal, discountType, discountValue);
-  const taxableSubtotal = Math.max(0, itemsSubtotal - discountAmount);
+  const afterDiscount = Math.max(0, itemsSubtotal - discountAmount);
+  const rewardsAmount = rewards ? Math.min(afterDiscount, Math.max(0, rewards.amount)) : 0;
+  const taxableSubtotal = afterDiscount - rewardsAmount;
   const pst = taxableSubtotal * 0.06;
   const gst = taxableSubtotal * 0.05;
-  const base: TaxBreakDown = { subTotal: itemsSubtotal, pst, gst, total: taxableSubtotal + pst + gst };
-  if (discountType === DiscountType.None || discountAmount <= 0) return base;
-  return { ...base, discount: { discountType, discountValue, discountAmount, taxableSubtotal } };
+  return {
+    subTotal: itemsSubtotal,
+    ...(discountType !== DiscountType.None && discountAmount > 0
+      ? { discount: { discountType, discountValue, discountAmount } }
+      : {}),
+    ...(rewards && rewardsAmount > 0
+      ? { rewards: { points: rewards.points, amount: rewardsAmount } }
+      : {}),
+    taxableSubtotal,
+    pst,
+    gst,
+    total: taxableSubtotal + pst + gst,
+  };
 };
+
+/** What's left after the staff discount — the most a rewards redemption can take off. */
+export const amountAfterDiscount = (taxBreakDown: TaxBreakDown | undefined): number =>
+  Math.max(0, (taxBreakDown?.subTotal ?? 0) - (taxBreakDown?.discount?.discountAmount ?? 0));
 
 export const resolveTaxBreakdown = (order: Partial<Order>): TaxBreakDown | undefined => {
   if (order.taxBreakDown) return order.taxBreakDown;

@@ -139,8 +139,16 @@ export const OnlineOrderCard = memo(function OnlineOrderCard({
                     }
                     value={`-${money(tax.discount.discountAmount)}`}
                   />
-                  <Row label="Taxable Subtotal" value={money(tax.discount.taxableSubtotal)} />
                 </>
+              ) : null}
+              {tax.rewards ? (
+                <Row
+                  label={`Rewards (${tax.rewards.points} pts)`}
+                  value={`-${money(tax.rewards.amount)}`}
+                />
+              ) : null}
+              {tax.taxableSubtotal < tax.subTotal ? (
+                <Row label="Taxable Subtotal" value={money(tax.taxableSubtotal)} />
               ) : null}
               {tax.pst > 0 && <Row label="PST" value={money(tax.pst)} />}
               {tax.gst > 0 && <Row label="GST" value={money(tax.gst)} />}
