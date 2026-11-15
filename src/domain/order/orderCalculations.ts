@@ -9,18 +9,42 @@ export const orderPaidFromLineItems = (items: OrderItem[] | undefined): boolean 
   return list.length > 0 && list.every((it) => it.paid === true);
 };
 
+/*
+ * Money math follows the cash register (cash-register/lib/tax.ts): amounts are worked
+ * in integer cents, rates in basis points (6% = 600), and each tax is rounded half up
+ * to the cent — so PST + GST + taxable subtotal always adds up to the total shown.
+ */
+
+/** Dollars → integer cents (prices are already cent values; this only drops float noise). */
+const toCents = (dollars: number): number => Math.round(dollars * 100);
+const toDollars = (cents: number): number => cents / 100;
+
+/** round_half_up(cents × rateBps / 10000) for non-negative integer cents. */
+const percentOfCents = (cents: number, rateBps: number): number =>
+  Math.floor((cents * rateBps + 5000) / 10000);
+
+const PST_BPS = 600;
+const GST_BPS = 500;
+
+const discountCents = (
+  subtotalCents: number,
+  discountType?: DiscountType,
+  discountValue?: number,
+): number => {
+  if (subtotalCents <= 0) return 0;
+  const type = discountType ?? DiscountType.None;
+  const value = Math.max(0, discountValue ?? 0);
+  if (type === DiscountType.Amount) return Math.min(subtotalCents, toCents(value));
+  if (type === DiscountType.Percent)
+    return percentOfCents(subtotalCents, Math.round(Math.min(100, value) * 100));
+  return 0;
+};
+
 export const calculateDiscountAmount = (
   itemsSubtotal: number,
   discountType?: DiscountType,
   discountValue?: number,
-): number => {
-  if (itemsSubtotal <= 0) return 0;
-  const type = discountType ?? DiscountType.None;
-  const value = discountValue ?? 0;
-  if (type === DiscountType.Amount) return Math.min(itemsSubtotal, Math.max(0, value));
-  if (type === DiscountType.Percent) return (itemsSubtotal * Math.min(100, Math.max(0, value))) / 100;
-  return 0;
-};
+): number => toDollars(discountCents(toCents(itemsSubtotal), discountType, discountValue));
 
 export const EMPTY_TAX_BREAKDOWN: TaxBreakDown = {
   subTotal: 0,
@@ -42,15 +66,24 @@ export const calculateTaxBreakdown = (
   discountValue = 0,
   rewards?: RewardsRedemption | null,
 ): TaxBreakDown => {
-  if (itemsSubtotal <= 0) return { ...EMPTY_TAX_BREAKDOWN };
-  const discountAmount = calculateDiscountAmount(itemsSubtotal, discountType, discountValue);
-  const afterDiscount = Math.max(0, itemsSubtotal - discountAmount);
-  const rewardsAmount = rewards ? Math.min(afterDiscount, Math.max(0, rewards.amount)) : 0;
-  const taxableSubtotal = afterDiscount - rewardsAmount;
-  const pst = taxableSubtotal * 0.06;
-  const gst = taxableSubtotal * 0.05;
+  const subtotalCents = toCents(itemsSubtotal);
+  if (subtotalCents <= 0) return { ...EMPTY_TAX_BREAKDOWN };
+  const discCents = discountCents(subtotalCents, discountType, discountValue);
+  const afterDiscountCents = Math.max(0, subtotalCents - discCents);
+  const rewardsCents = rewards
+    ? Math.min(afterDiscountCents, toCents(Math.max(0, rewards.amount)))
+    : 0;
+  const taxableCents = afterDiscountCents - rewardsCents;
+  const pstCents = percentOfCents(taxableCents, PST_BPS);
+  const gstCents = percentOfCents(taxableCents, GST_BPS);
+
+  const discountAmount = toDollars(discCents);
+  const rewardsAmount = toDollars(rewardsCents);
+  const taxableSubtotal = toDollars(taxableCents);
+  const pst = toDollars(pstCents);
+  const gst = toDollars(gstCents);
   return {
-    subTotal: itemsSubtotal,
+    subTotal: toDollars(subtotalCents),
     ...(discountType !== DiscountType.None && discountAmount > 0
       ? { discount: { discountType, discountValue, discountAmount } }
       : {}),
@@ -60,7 +93,7 @@ export const calculateTaxBreakdown = (
     taxableSubtotal,
     pst,
     gst,
-    total: taxableSubtotal + pst + gst,
+    total: toDollars(taxableCents + pstCents + gstCents),
   };
 };
 
