@@ -11,6 +11,7 @@ import { ungroupOrderItems } from "@/utils/groupOrderItems";
 import { calculateTaxBreakdown, orderItemsSubtotal } from "@/utils/helpers";
 import { normalizeOrderItemTextForDb } from "@/utils/normalizeOrderItemText";
 import { runTransaction, Timestamp } from "firebase/firestore";
+import { itemNumberField } from "@/domain/menu/menuItemNumber";
 
 export async function convertDineInToTakeOut(
   args: {
@@ -88,6 +89,7 @@ export async function convertDineInToTakeOut(
     const cleanItems = orderItems.map((item) => ({
       id: item.id,
       name: item.name,
+      ...itemNumberField(item),
       price: item.price,
       quantity: item.quantity,
       togo: false,
@@ -199,6 +201,7 @@ export async function convertTakeOutToDineIn(
       normalizeOrderItemTextForDb({
         id: item.id,
         name: item.name,
+        ...itemNumberField(item),
         price: item.price,
         quantity: item.quantity,
         togo: item.togo,

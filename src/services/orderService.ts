@@ -7,6 +7,7 @@ import { activeRedemption } from "@/domain/rewards/rewardsRules";
 import { calculateTaxBreakdown, orderItemsSubtotal } from "@/utils/helpers";
 import { normalizeOrderItemTextForDb } from "@/utils/normalizeOrderItemText";
 import { runTransaction, setDoc, Timestamp, writeBatch } from "firebase/firestore";
+import { itemNumberField } from "@/domain/menu/menuItemNumber";
 
 function discountInputs(order: OrderDraft): { type: DiscountType; value: number } {
   const d = order.taxBreakDown?.discount;
@@ -139,6 +140,7 @@ export async function updateOrder(order: OrderDraft): Promise<void> {
     normalizeOrderItemTextForDb({
       id: item.id,
       name: item.name,
+      ...itemNumberField(item),
       price: item.price,
       quantity: item.quantity,
       togo: item.togo,

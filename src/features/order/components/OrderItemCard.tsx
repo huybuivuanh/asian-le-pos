@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import SpecialFlagsSelector from "./SpecialFlagsSelector";
+import { menuItemLabel } from "@/domain/menu/menuItemNumber";
 
 interface Props {
   item: OrderItem;
@@ -45,7 +46,7 @@ export default function OrderItemCard({ item }: Props) {
             >
               <Text className="font-bold text-stone-600">{item.quantity}</Text>
               <Text className="text-stone-400"> × </Text>
-              {item.name}
+              {menuItemLabel(item)}
             </Text>
             <Text className="text-lg font-bold text-stone-900">
               ${lineTotal}

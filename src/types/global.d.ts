@@ -57,6 +57,8 @@ declare global {
   interface OrderItem {
     id?: string;
     name: string;
+    /** The menu item's number when it was added (optional; the KDS ignores it). */
+    itemNumber?: number;
     price: number;
     quantity: number;
     options?: OrderItemOption[];

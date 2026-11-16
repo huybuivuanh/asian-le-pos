@@ -14,6 +14,7 @@ import { formatPhone } from "@/utils/helpers";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { Platform, ScrollView, Text, View, type ScrollViewInstance } from "react-native";
+import { menuItemLabel } from "@/domain/menu/menuItemNumber";
 
 type BillView = {
   items: OrderItem[];
@@ -207,7 +208,7 @@ export default function CustomerDisplayScreen() {
                   {item.quantity}
                 </Text>
                 <Text className="text-stone-500"> × </Text>
-                {item.name}
+                {menuItemLabel(item)}
               </Text>
               <Text className="text-2xl font-bold text-white">
                 ${(item.price * item.quantity).toFixed(2)}

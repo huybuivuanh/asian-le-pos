@@ -2,15 +2,26 @@
 // pos-admin). Shown as "12. Chicken Chow Mein" (same in the admins and the website) and
 // searchable along with the name.
 
-type Numbered = { name: string; itemNumber?: unknown };
+type HasNumber = { itemNumber?: unknown };
+type Numbered = HasNumber & { name: string };
 
 /** The item's number, or undefined when it has none (or the stored value isn't valid). */
-export const itemNumberOf = (item: Numbered): number | undefined =>
+export const itemNumberOf = (item: HasNumber): number | undefined =>
   typeof item.itemNumber === "number" && Number.isInteger(item.itemNumber) && item.itemNumber > 0
     ? item.itemNumber
     : undefined;
 
-/** "12. Chicken Chow Mein", or just the name when the item has no number. */
+/**
+ * `{ itemNumber }` when the item has a valid number, else `{}` — for copying it onto an
+ * order item without writing `undefined` (Firestore rejects undefined fields).
+ */
+export const itemNumberField = (item: HasNumber): { itemNumber?: number } => {
+  const n = itemNumberOf(item);
+  return n != null ? { itemNumber: n } : {};
+};
+
+/** "12. Chicken Chow Mein", or just the name when the item has no number. Works for menu
+ * items and order items. */
 export const menuItemLabel = (item: Numbered): string => {
   const n = itemNumberOf(item);
   return n != null ? `${n}. ${item.name}` : item.name;

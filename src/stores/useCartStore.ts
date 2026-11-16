@@ -2,6 +2,7 @@ import { activeRedemption } from "@/domain/rewards/rewardsRules";
 import { DiscountType, OrderType, TakeOutFulfillmentKind } from "@/types/enums";
 import { calculateTaxBreakdown, orderItemsSubtotal } from "@/utils/helpers";
 import { create } from "zustand";
+import { itemNumberField } from "@/domain/menu/menuItemNumber";
 
 type CartState = {
   order: OrderDraft;
@@ -137,6 +138,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         const updatedItem: OrderItem = {
           id: item.id,
           name: fields.name ?? item.name,
+          ...itemNumberField(fields.itemNumber != null ? fields : item),
           price: fields.price ?? item.price,
           quantity: fields.quantity ?? item.quantity,
           togo: fields.togo ?? item.togo,

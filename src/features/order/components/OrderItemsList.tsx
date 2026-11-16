@@ -5,6 +5,7 @@ import {
   sortOrderItemsForDisplay,
 } from "../orderItemSections";
 import OrderSectionHeader from "./OrderSectionHeader";
+import { menuItemLabel } from "@/domain/menu/menuItemNumber";
 
 type Props = {
   orderItems?: OrderItem[];
@@ -102,7 +103,7 @@ const OrderItemRow = memo(function OrderItemRow({
                     {orderItem.quantity}
                   </Text>
                   <Text className="text-stone-400"> × </Text>
-                  {orderItem.name}
+                  {menuItemLabel(orderItem)}
                 </Text>
                 <Text className="text-lg font-bold text-stone-900">
                   ${lineTotal}

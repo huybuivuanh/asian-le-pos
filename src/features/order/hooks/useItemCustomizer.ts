@@ -10,6 +10,7 @@ import {
   getMenuItemOptionGroupIdSet,
 } from "@/utils/menuOrdering";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { itemNumberField } from "@/domain/menu/menuItemNumber";
 
 type UseItemCustomizerParams = {
   item: MenuItem;
@@ -233,6 +234,7 @@ export function useItemCustomizer({
     if (isEditMode && orderItemId) {
       updateOrderItem(orderItemId, {
         name: item.name,
+        ...itemNumberField(item),
         togo: specialFlag === "toGo",
         appetizer: specialFlag === "appetizer",
         kitchenType: item.kitchenType,
@@ -247,6 +249,7 @@ export function useItemCustomizer({
       addItem({
         id: generateFirestoreId(),
         name: item.name,
+        ...itemNumberField(item),
         togo: specialFlag === "toGo",
         appetizer: specialFlag === "appetizer",
         kitchenType: item.kitchenType,
